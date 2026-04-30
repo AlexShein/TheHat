@@ -1,4 +1,12 @@
-import { type Auth, type User, onAuthStateChanged } from "firebase/auth"
+import {
+  type Auth,
+  type User,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+} from "firebase/auth"
 import { signInWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth"
 import { type Database, ref, get } from "firebase/database"
 
@@ -26,10 +34,24 @@ export async function signInDevEmail(auth: Auth, email: string, password: string
  * Google sign-in via popup (production) or email/password fallback (emulator).
  * In emulator: first creates the user if not exists, then signs in.
  */
-export async function signInWithGoogle(): Promise<void> {
-  // Phase 1.2 will implement the full Google popup flow
-  // For now, this placeholder exists for the interface contract
-  throw new Error("signInWithGoogle() not implemented — Phase 1.2")
+/** Google sign-in via popup with redirect fallback for popup-blocked browsers. */
+export async function signInWithGoogle(auth: Auth): Promise<void> {
+  const provider = new GoogleAuthProvider()
+  try {
+    await signInWithPopup(auth, provider)
+  } catch (err: unknown) {
+    const error = err as { code?: string }
+    if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
+      await signInWithRedirect(auth, provider)
+      return
+    }
+    throw err
+  }
+}
+
+/** Call on page load to handle redirect result after signInWithRedirect. */
+export async function handleRedirectResult(auth: Auth): Promise<void> {
+  await getRedirectResult(auth)
 }
 
 /** Sign out current user. */

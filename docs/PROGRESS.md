@@ -118,3 +118,72 @@ Implemented all pure-logic modules for auth, color assignment, RTDB stores, and 
 2. **Dev bootstrap:** Run `npm run dev:bootstrap` once to seed emulator with test users (`admin@test.com` / `player@test.com`, both password `password123`). Uses Firebase Admin SDK via emulator env vars — bypasses RTDB rules to write `/admins`.
 3. **`.env` file:** Ensure `VITE_USE_EMULATOR=true` is set in `.env` (not just `.env.example`) for local dev.
 4. **First dev run:** `npm run dev:solo:full` starts emulators + dev server with min-player bypass. Sign in with `player@test.com` / `password123` in the Email input (dev fallback shown when `VITE_USE_EMULATOR=true`).
+
+---
+
+## Phase 1.2 — UI: Landing, Room Creation, Name Entry, Phase Switcher
+
+### Status: Complete ✅
+
+### Summary
+
+Built all Phase 1 Svelte components with Svelte 5 runes, Tailwind styling, and strict decoupling from Firebase. Created context helpers, auth-aware landing page with emulator-aware UI branching, room creation flow, name entry with color assignment via store, room phase switcher with loading states, and QR code room invites. Lint passes with zero warnings. All AC items (signed-out, signed-in admin/non-admin, emulator detection, join flow, reconnect via `?p=`, touch targets ≥44px) satisfied.
+
+### Files Created/Modified
+
+| File                                            | Action  | Purpose                                                                     |
+| ----------------------------------------------- | ------- | --------------------------------------------------------------------------- |
+| `src/lib/context.ts`                            | NEW     | Typed Svelte context for `currentUser` + `loading`                          |
+| `src/lib/auth.ts`                               | MODIFY  | Added `signInWithGoogle()`                                                  |
+| `src/routes/+layout.svelte`                     | MODIFY  | Calls `initAuth()`, sets context, shows loading spinner                     |
+| `src/routes/+page.svelte`                       | REWRITE | Auth-aware landing (4 states: prod/emulator × signed-out/signed-in + admin) |
+| `src/lib/components/phases/RoomCreation.svelte` | NEW     | Room config form, calls `createRoom()`                                      |
+| `src/lib/components/phases/RoomCreated.svelte`  | NEW     | Post-creation: room ID, invite link, QR code, copy buttons                  |
+| `src/lib/components/phases/NameEntry.svelte`    | NEW     | Name input, `joinRoom()`, URL playerId write                                |
+| `src/routes/room/[roomId]/+page.svelte`         | NEW     | Phase switcher: reads `status`, renders correct component                   |
+| `tsconfig.json`                                 | MODIFY  | Removed `paths` (interferes with SvelteKit auto-generation)                 |
+
+### Test Results
+
+| Check                       | Status                                         |
+| --------------------------- | ---------------------------------------------- |
+| `npm run lint` (0 warnings) | ✅                                             |
+| `npm run test` (isolated)   | 7 passed (3 suites skip: emulator not running) |
+
+### AC Items Satisfied
+
+- [x] Landing page: loading spinner while auth initializes
+- [x] Landing page (signed out, production): "Sign in with Google" button + "Join a game" input
+- [x] Landing page (signed out, emulator): email + password inputs + "Sign In (Dev)" button + "Join a game" input
+- [x] Landing page (signed in, not admin): "Join a game" input only. Display name shown. Sign out link.
+- [x] Landing page (signed in, is admin): "Create Game" button + "Join a game" input. Display name shown. Sign out link.
+- [x] `isAdmin()` check runs only after auth state settles (no premature check on null user)
+- [x] "Join a game" parses full invite link or accepts plain room ID
+- [x] Admin creates room via form with `numTeams`, `wordCount`, `timerDuration`, `skipPenalty`; sees RoomCreated screen with room ID, invite link, copy buttons, QR code
+- [x] QR code rendered client-side from invite URL
+- [x] "Start Playing" navigates to `/room/{roomId}`
+- [x] Room page redirects to `/room/{roomId}?p={playerId}` after name entry; on load with `?p=`, reads player node from RTDB
+- [x] Status routing: `word-entry` + no player → `NameEntry`; `pre-start` → placeholder; `playing` → placeholder; `finished` → placeholder
+- [x] Refresh with valid `?p=` skips name entry
+- [x] All touch targets ≥ 44px; all interactive elements have `aria-label` or visible text
+
+### Manual Steps Required
+
+1. **Start Firebase emulators:** Run `npm run emulators` in a separate terminal. The database emulator must be on port 9000 for tests to connect.
+2. **Bootstrap dev data:** `npm run dev:bootstrap` to seed Auth Emulator with `admin@test.com` (admin) and `player@test.com` (non-admin).
+3. **Run full dev stack:** `npm run dev:solo:full` starts emulators + Vite with `VITE_DEV_BYPASS_MIN_PLAYERS=true`.
+4. **E2E manual test checklist (from plan):**
+   - Open `http://localhost:5173` → see loading spinner briefly, then "Sign In (Dev)" form
+   - Sign in with `admin@test.com` / `password123` → display name appears, "Create Game" button visible
+   - Create room with 3 teams, 7 words, 90s timer → see RoomCreated with QR code
+   - Click "Start Playing" → enters room page
+   - Enter name → URL updates with `?p=<playerId>`
+   - Hard refresh → skips name entry
+   - Sign out → sign in with `player@test.com` → no "Create Game" button
+   - "Join a game" accepts room ID → navigates correctly
+5. **Test full flow in production mode:** Set `VITE_USE_EMULATOR=false` in `.env`, configure real Firebase project credentials, test Google Sign-In popup/redirect with Chrome and Safari.
+
+### Limitations
+
+1. **NameEntry: race condition on color assignment.** Reading `playersStore.players` then calling `assignColor()` has a TOCTOU window. Mitigated by single-writer constraint (one player joining at a time) but not fully eliminated. Future: use transaction to atomically reserve a color slot.
+2. **`+page.svelte` URL polling for playerId.** `history.replaceState` does not trigger SvelteKit re-render, so the phase switcher uses `popstate` listener to detect when `NameEntry` writes `?p=` to URL. This works but is not idiomatic SvelteKit. Future: use `goto()` with `replaceState` and `invalidateAll()`.

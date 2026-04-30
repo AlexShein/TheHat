@@ -15,7 +15,7 @@
     "dev:bootstrap": "firebase emulators:exec --project=demo-bootstrap --only database,auth 'tsx scripts/dev-bootstrap.ts'",
     "test:rules": "firebase emulators:exec --project=ci-test --only database 'vitest run src/lib/rules.test.ts'",
     "test:watch": "vitest",
-    "lint": "eslint . --max-warnings 0",
+    "lint": "eslint . --max-warnings 0 && npx svelte-check && npx tsc --noEmit",
     "typecheck": "svelte-check && tsc --noEmit",
     "build": "vite build",
     "test:bundle": "MAX_KB=250; ACTUAL=$(du -sk build/_app/immutable/chunks/ 2>/dev/null | awk '{sum+=$1} END {print sum+0}'); echo \"Bundle: ${ACTUAL}KB (limit: ${MAX_KB}KB)\"; [ \"$ACTUAL\" -le \"$MAX_KB\" ] || (echo \"FAIL: ${ACTUAL}KB > ${MAX_KB}KB\" && exit 1)"

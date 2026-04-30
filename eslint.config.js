@@ -1,4 +1,5 @@
 import sveltePlugin from "eslint-plugin-svelte"
+import svelteParser from "svelte-eslint-parser"
 import tseslint from "typescript-eslint"
 
 export default [
@@ -7,6 +8,17 @@ export default [
   },
   ...tseslint.configs.recommended,
   ...sveltePlugin.configs["flat/recommended"],
+  // Override: use svelte-eslint-parser + TS parser for .svelte script blocks.
+  // flat/recommended uses processors (espree for JS), which don't understand TS.
+  {
+    files: ["**/*.svelte", "*.svelte"],
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: {
+        parser: tseslint.parser,
+      },
+    },
+  },
   {
     files: ["**/*.svelte.ts"],
     languageOptions: {
