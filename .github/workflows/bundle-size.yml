@@ -30,14 +30,6 @@ jobs:
           echo "bundle_kb=$ACTUAL" >> "$GITHUB_OUTPUT"
           [ "$ACTUAL" -le "$MAX_KB" ] || (echo "Bundle too large: ${ACTUAL}KB > ${MAX_KB}KB" && exit 1)
         id: check
-      - name: Post bundle size comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const kb = '${{ steps.check.outputs.bundle_kb }}';
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `📦 Bundle size: **${kb}KB** (limit: 250KB)`
-            });
+      - name: Post bundle size result
+        run: |
+          echo "📦 Bundle size: **${{ steps.check.outputs.bundle_kb }}KB** (limit: 250KB)" >> "$GITHUB_STEP_SUMMARY"
