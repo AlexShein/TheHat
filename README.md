@@ -41,6 +41,10 @@ npx tsx scripts/remove-admin.ts friend@gmail.com
 - User must have signed into the app with Google at least once before they can be made admin (otherwise Firebase Auth has no record of them).
 - Remove uses `ref.set(null)` which deletes the node. Rules prevent admin self-removal via the app.
 
+## CI/CD
+
+GitHub Actions on PR + push to `main`: `lint-and-typecheck` → `unit-tests` + `firebase-rules` → `build`. Bundle-size gate (non-blocking). All under 4 min. See `docs/TASK_CI_PIPELINE.md`.
+
 ## Development
 
 ```bash

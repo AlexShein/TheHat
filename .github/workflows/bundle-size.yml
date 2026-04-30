@@ -1,0 +1,35 @@
+name: Bundle Size
+
+on:
+  pull_request:
+
+jobs:
+  bundle-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: |
+          touch .env
+          echo "VITE_FIREBASE_API_KEY=ci-key" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=ci.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_DATABASE_URL=https://ci.firebaseio.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=ci-project" >> .env
+          echo "VITE_FIREBASE_APP_ID=ci-app" >> .env
+          echo "VITE_USE_EMULATOR=false" >> .env
+      - run: npm run build
+      - name: Check bundle size
+        run: |
+          MAX_KB=250
+          ACTUAL=$(du -sk build/_app/immutable/chunks/ 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          echo "Bundle size: ${ACTUAL}KB (limit: ${MAX_KB}KB)"
+          echo "bundle_kb=$ACTUAL" >> "$GITHUB_OUTPUT"
+          [ "$ACTUAL" -le "$MAX_KB" ] || (echo "Bundle too large: ${ACTUAL}KB > ${MAX_KB}KB" && exit 1)
+        id: check
+      - name: Post bundle size result
+        run: |
+          echo "📦 Bundle size: **${{ steps.check.outputs.bundle_kb }}KB** (limit: 250KB)" >> "$GITHUB_STEP_SUMMARY"

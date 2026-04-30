@@ -16,6 +16,7 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npx eslint . --max-warnings 0
+      - run: npx svelte-kit sync
       - run: npx svelte-check && npx tsc --noEmit
 
   unit-tests:
@@ -27,6 +28,14 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}
       - run: npm ci
       - run: npm run test:ci
         env:
@@ -41,6 +50,14 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}
       - run: npm ci
       - run: npm run test:rules
         env:
@@ -65,4 +82,4 @@ jobs:
           echo "VITE_FIREBASE_APP_ID=ci-app" >> .env
           echo "VITE_USE_EMULATOR=false" >> .env
       - run: npm run build
-      - run: test -d build && ls build/index.html
+      - run: test -d build && ls build/200.html
