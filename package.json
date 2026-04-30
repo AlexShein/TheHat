@@ -33,7 +33,7 @@
     "concurrently": "^9.0.0",
     "eslint": "^9.0.0",
     "eslint-plugin-svelte": "^3.0.0",
-    "firebase-admin": "^12.7.0",
+    "firebase-admin": "^13.8.0",
     "postcss": "^8.4.0",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
