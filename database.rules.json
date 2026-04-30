@@ -8,17 +8,18 @@
       ".indexOn": ["meta/lastActiveAt"],
       "$roomId": {
         ".read": true,
-        ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
         "meta": {
+          ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
           ".validate": "newData.hasChildren(['createdBy', 'createdAt', 'lastActiveAt'])"
         },
         "config": {
+          ".write": "auth != null && root.child('admins').child(auth.uid).exists()",
           ".validate": "newData.hasChildren(['wordCount', 'numTeams', 'skipPenalty', 'timerDuration'])"
         },
         "players": {
           "$playerId": {
-            ".write": "auth != null && (auth.uid === $playerId || root.child('admins').child(auth.uid).exists())",
-            ".validate": "newData.hasChildren(['name', 'color', 'teamId', 'wordsSubmitted', 'ready', 'connected', 'isAdmin'])"
+            ".write": "auth != null && (auth.uid === $playerId)",
+            ".validate": "newData.hasChildren(['name', 'color', 'wordsSubmitted', 'ready', 'connected', 'isAdmin'])"
           }
         },
         "teams": {

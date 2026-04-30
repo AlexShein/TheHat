@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "svelte-check && tsc --noEmit",
-    "build": "vite build"
+    "build": "vite build",
+    "test:bundle": "MAX_KB=250; ACTUAL=$(du -sk build/_app/immutable/chunks/ 2>/dev/null | awk '{sum+=$1} END {print sum+0}'); echo \"Bundle: ${ACTUAL}KB (limit: ${MAX_KB}KB)\"; [ \"$ACTUAL\" -le \"$MAX_KB\" ] || (echo \"FAIL: ${ACTUAL}KB > ${MAX_KB}KB\" && exit 1)"
   },
   "dependencies": {
     "@sveltejs/adapter-static": "^3.0.0",
