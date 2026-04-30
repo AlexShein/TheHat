@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "vite dev",
     "dev:solo": "VITE_DEV_BYPASS_MIN_PLAYERS=true vite dev",
-    "emulators": "firebase emulators:start --only database,functions",
+    "emulators": "firebase emulators:start --only database,auth",
     "dev:full": "concurrently \"npm run emulators\" \"npm run dev\"",
     "dev:solo:full": "concurrently \"npm run emulators\" \"npm run dev:solo\"",
     "test": "vitest run --coverage",
-    "test:ci": "firebase emulators:exec --project=ci-test --only database 'vitest run --coverage'",
+    "test:ci": "firebase emulators:exec --project=ci-test --only database,auth 'vitest run --coverage'",
     "test:ci:auth": "firebase emulators:exec --project=ci-test --only database,auth 'vitest run --coverage'",
     "dev:bootstrap": "firebase emulators:exec --project=demo-bootstrap --only database,auth 'tsx scripts/dev-bootstrap.ts'",
     "test:rules": "firebase emulators:exec --project=ci-test --only database 'vitest run src/lib/rules.test.ts'",

@@ -6,39 +6,26 @@
   import { RoomStatus } from "$lib/db-types"
 
   let { data }: PageProps = $props()
-  const { roomId, playerId } = data
 
-  const roomStore = createRoomStore(roomId)
-  const playersStore = createPlayersStore(roomId)
+  const roomStore = (() => createRoomStore(data.roomId))()
+  const playersStore = (() => createPlayersStore(data.roomId))()
 
   let status = $derived(roomStore.status)
 
-  // Track whether NameEntry just completed and wrote playerId to URL.
-  // After join, the component re-evaluates via playerKnown $derived.
-  // No explicit state needed — URL update triggers reactive flow.
-  //
-  // BUT: `history.replaceState` does NOT cause page re-render.
-  // So we detect join via polling the URL for a new `?p=` param.
-  let localPlayerId = $state<string | null>(playerId)
+  let localPlayerId = $state<string | null>(null)
 
   $effect(() => {
+    localPlayerId = data.playerId
+
     function checkUrl() {
       const p = new URL(window.location.href).searchParams.get("p")
       if (p && p !== localPlayerId) {
         localPlayerId = p
       }
     }
-    // Check on mount and on popstate
     checkUrl()
     window.addEventListener("popstate", checkUrl)
     return () => window.removeEventListener("popstate", checkUrl)
-  })
-
-  $effect(() => {
-    return () => {
-      roomStore.destroy()
-      playersStore.destroy()
-    }
   })
 </script>
 
@@ -53,7 +40,7 @@
       <!-- Player already joined, but word-entry phase -->
       <p class="text-center text-gray-600">Word Entry — coming soon</p>
     {:else}
-      <NameEntry {roomId} />
+      <NameEntry roomId={data.roomId} />
     {/if}
   {:else if status === RoomStatus.PreStart}
     <p class="text-center text-gray-600">Lobby — coming soon</p>

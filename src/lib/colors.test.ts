@@ -7,7 +7,7 @@ describe("colors", () => {
   })
 
   it("assignColor() returns a color not in usedColors", () => {
-    const used = new Set<string>([PLAYER_COLORS[0], PLAYER_COLORS[1]])
+    const used = new Set<string>([PLAYER_COLORS[0]!, PLAYER_COLORS[1]!])
     const color = assignColor(used)
     expect(color).toBeDefined()
     expect(used.has(color)).toBe(false)
@@ -15,7 +15,7 @@ describe("colors", () => {
   })
 
   it("assignColor() returns first unused color", () => {
-    const used = new Set<string>([PLAYER_COLORS[0]])
+    const used = new Set<string>([PLAYER_COLORS[0]!])
     const color = assignColor(used)
     expect(color).toBe(PLAYER_COLORS[1])
   })
