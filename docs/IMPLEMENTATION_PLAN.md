@@ -7,9 +7,11 @@ Complete phases in order. Do not begin a phase until all acceptance criteria of 
 ---
 
 ## Phase 0 — Infrastructure & Tooling
+
 **Estimate: 1 day**
 
 ### Files to Create
+
 ```
 src/lib/firebase.ts          # App init, db + auth exports, emulator connection
 src/lib/db-types.ts          # TypeScript interfaces for all RTDB nodes
@@ -24,6 +26,7 @@ eslint.config.js
 ```
 
 ### Tasks
+
 - [ ] Firebase project created (Spark plan). RTDB, Auth (Google), Hosting, Functions enabled.
 - [ ] Your uid added manually to `/admins/{uid}` in RTDB console.
 - [ ] `firebase.ts`: initialize app, export `db` and `auth`. Connect to emulator when `VITE_USE_EMULATOR=true`.
@@ -52,6 +55,7 @@ eslint.config.js
 - [ ] `firebase deploy --only hosting` succeeds.
 
 ### Critical Tests
+
 ```
 src/lib/rules.test.ts:
   ✓ admin uid can write to /rooms
@@ -65,6 +69,7 @@ src/lib/firebase.test.ts:
 ```
 
 ### Acceptance Criteria
+
 - [ ] `npm run test:ci` passes with zero failures
 - [ ] `npm run lint` exits 0
 - [ ] `npm run typecheck` exits 0 with strict mode
@@ -74,11 +79,13 @@ src/lib/firebase.test.ts:
 ---
 
 ## Phase 1 — Room Creation & Player Join
+
 **Estimate: 2–3 days**
 
 ### Files to Create / Modify
+
 ```
-src/routes/+page.svelte                          # Landing — create game button (admin only)
+src/routes/+page.svelte                          # Landing — admin sees Create Game, non-admin sees Join Game
 src/routes/room/[roomId]/+page.svelte            # Phase switcher scaffold
 src/routes/room/[roomId]/+page.ts                # Load: roomId + playerId resolution
 src/lib/auth.ts                                  # isAdmin(), requireAdmin()
@@ -89,7 +96,8 @@ src/components/phases/NameEntry.svelte
 ```
 
 ### Tasks
-- [ ] Landing: "Create Game" visible only when `isAdmin()` is true.
+
+- [ ] Landing: "Sign in" button that allows admins to authenticate. "Create Game" visible only when `isAdmin()` is true. "Join a game" — text field to enter room ID or paste full invite link + "Join" button, visible to all. Parses room ID from pasted URL automatically.
 - [ ] `createRoom()`: generate `roomId` with `nanoid(8)`, write full room node with config defaults.
 - [ ] Room config UI: `wordCount`, `numTeams`, `skipPenalty`, `timerDuration`.
 - [ ] Invite URL: `/room/{roomId}`. QR code rendered client-side from this URL.
@@ -100,6 +108,7 @@ src/components/phases/NameEntry.svelte
 - [ ] `+page.svelte`: renders `NameEntry` when `status === 'word-entry'` and no player node found.
 
 ### Critical Tests
+
 ```
 src/lib/colors.test.ts:
   ✓ assignColor() returns a color not in usedColors
@@ -123,6 +132,7 @@ src/lib/player-join.test.ts (emulator):
 ```
 
 ### Acceptance Criteria
+
 - [ ] Admin creates room; receives working invite URL and rendered QR code
 - [ ] Three browser tabs join the same emulator room; each gets distinct color; player list updates live
 - [ ] Closing a tab: `players/{id}/connected` becomes `false` (verify in emulator UI within 60s)
@@ -132,9 +142,11 @@ src/lib/player-join.test.ts (emulator):
 ---
 
 ## Phase 2 — Word Entry & Lobby
+
 **Estimate: 2 days**
 
 ### Files to Create / Modify
+
 ```
 src/components/phases/WordEntry.svelte
 src/components/phases/Lobby.svelte
@@ -142,6 +154,7 @@ src/lib/game/turn.ts                             # initializeGameState()
 ```
 
 ### Tasks
+
 - [ ] Word entry: input + add button. Submitted word list. Submit CTA appears only at `wordCount` threshold.
 - [ ] Write each word to `/rooms/{id}/words/{wordId}` on add. Mark `player.wordsSubmitted = true` on Submit.
 - [ ] Lobby: N team cards from `config.numTeams`, join button, player count + colored dots per team.
@@ -154,6 +167,7 @@ src/lib/game/turn.ts                             # initializeGameState()
 - [ ] `+page.svelte`: render `WordEntry` for `status === 'word-entry'`; `Lobby` for `status === 'pre-start'`.
 
 ### Critical Tests
+
 ```
 src/lib/game/turn.test.ts:
   ✓ initializeGameState() produces hat with length === playerCount × wordCount
@@ -166,6 +180,7 @@ src/lib/game/turn.test.ts:
 ```
 
 ### Acceptance Criteria
+
 - [ ] Player cannot submit fewer words than `config.wordCount`; Submit button absent
 - [ ] `npm run dev:solo:full`: single player can proceed past Lobby and reach game screen
 - [ ] `gameState.hat.length === playerCount × config.wordCount` immediately after start (emulator UI)
@@ -175,9 +190,11 @@ src/lib/game/turn.test.ts:
 ---
 
 ## Phase 3 — Core Game Turn
+
 **Estimate: 4–5 days. Do not underestimate.**
 
 ### Files to Create / Modify
+
 ```
 src/lib/game/timer.ts                            # getTimeRemaining() pure function
 src/lib/game/hat.ts                              # drawWord(), returnWord() — always transactions
@@ -194,11 +211,13 @@ src/components/shared/TeamScore.svelte
 ### Tasks
 
 **Timer:**
+
 - [ ] `getTimeRemaining(timerStartedAt, timerDuration, pausedAt, timeRemainingAtPause): number` — pure function, no Firebase calls, no side effects. Clamps to 0.
 - [ ] Reactive timer value: `$effect` with `setInterval` (100ms), calls `getTimeRemaining()` each tick.
 - [ ] `Timer.svelte`: MM:SS display. Text turns red when `< 10000ms`.
 
 **Explainer turn:**
+
 - [ ] `ExplainerView.svelte` renders only when `gameState.currentExplainerId === myPlayerId`.
 - [ ] Start button: writes `timerStartedAt: serverTimestamp()`, `phase: 'explaining'`, calls `drawWord()`.
 - [ ] `drawWord()`: `runTransaction` on `gameState.hat` — removes one random wordId atomically, returns it. If hat is empty after draw → caller writes `phase: 'post_turn'`. Never calls `set()` directly on hat.
@@ -208,6 +227,7 @@ src/components/shared/TeamScore.svelte
 - [ ] Undo: `undoLastAction()` — reverse score/penalty, return word to hat, set `currentWordId` back to undone word, clear `lastAction`. Throws typed error if `lastAction` is null.
 
 **Timer expiry:**
+
 - [ ] When `timeRemaining <= 0` and `phase === 'explaining'`: check `Date.now() - wordDisplayedAt`.
   - `> 2000` → write `phase: 'post_expiry'`
   - `≤ 2000` → write `phase: 'post_turn'`, `currentWordId: null`
@@ -217,11 +237,13 @@ src/components/shared/TeamScore.svelte
 - [ ] On expiry: `navigator.vibrate(300)` + Web Audio beep (200Hz, 0.3s).
 
 **Post-turn:**
+
 - [ ] `PostTurn.svelte`: count of words guessed this turn by active team.
 - [ ] `advanceTurn()`: increment `currentPlayerIndex` mod `playerOrder.length` for current team, select next team round-robin, write `currentTeamId`, `currentExplainerId`, `phase: 'waiting_start'`, `lastAction: null`, `currentWordId: null`.
 - [ ] After `advanceTurn()`: if `hat.length === 0` → write `phase: 'round_end'`.
 
 ### Critical Tests
+
 ```
 src/lib/game/timer.test.ts:
   ✓ returns timerDuration when timerStartedAt is null
@@ -253,6 +275,7 @@ src/lib/game/turn.test.ts:
 ```
 
 ### Acceptance Criteria
+
 - [ ] `npm run dev:solo:full`: full turn cycle playable solo — Start → word → Guessed/Skip/Undo → expiry → post_expiry decision → post_turn → next turn
 - [ ] Timer identical (±1s) across 3 simultaneous browser tabs on same emulator room
 - [ ] Two rapid Guessed taps never produce duplicate word (verify hat state in emulator UI)
@@ -265,9 +288,11 @@ src/lib/game/turn.test.ts:
 ---
 
 ## Phase 4 — Rounds & Scoreboard
+
 **Estimate: 2 days**
 
 ### Files to Create / Modify
+
 ```
 src/lib/game/turn.ts                             # endRound(), restartGame()
 src/components/phases/RoundEnd.svelte
@@ -275,12 +300,14 @@ src/components/phases/Scoreboard.svelte
 ```
 
 ### Tasks
+
 - [ ] `RoundEnd.svelte`: rendered when `phase === 'round_end'`. Shows scores. Admin sees "Next Round" / "See Results".
 - [ ] `endRound()`: if `round < 3` → refill `hat` from all `/rooms/{id}/words/` IDs, increment `round`, keep `currentTeamId` and `currentPlayerIndex`, write `phase: 'waiting_start'`. If `round === 3` → write `status: 'finished'`. Never resets turn order.
 - [ ] `Scoreboard.svelte`: `status === 'finished'`. Team totals = `round1 + round2 + round3`. Per-player `wordsExplained`.
 - [ ] `restartGame()`: clears `gameState` node, clears `words`, resets all players' `wordsSubmitted = false` and `ready = false`. Writes `status: 'word-entry'`. Preserves `player.teamId`, `teams.playerOrder`, `teams.currentPlayerIndex`.
 
 ### Critical Tests
+
 ```
 src/lib/game/turn.test.ts (continued):
   ✓ endRound() with round=1: hat length restored to original, round=2, phase='waiting_start'
@@ -295,6 +322,7 @@ src/lib/game/turn.test.ts (continued):
 ```
 
 ### Acceptance Criteria
+
 - [ ] Round ends immediately when hat empties (mid-turn path and post-turn path both trigger it)
 - [ ] Hat length at start of round 2 and round 3 equals original total word count (emulator UI)
 - [ ] Turn order does not reset between rounds (team index and player index preserved)
@@ -304,9 +332,11 @@ src/lib/game/turn.test.ts (continued):
 ---
 
 ## Phase 5 — Admin Controls & Disconnect Handling
+
 **Estimate: 2 days**
 
 ### Files to Create / Modify
+
 ```
 src/components/shared/AdminControls.svelte
 src/components/shared/DisconnectOverlay.svelte
@@ -314,6 +344,7 @@ src/lib/game/turn.ts                             # pauseGame(), resumeGame(), re
 ```
 
 ### Tasks
+
 - [ ] `AdminControls.svelte`: visible only when `player.isAdmin === true`. Contains Pause/Resume toggle and Change Explainer button.
 - [ ] `pauseGame()`: writes `pausedAt: serverTimestamp()`, computes `timeRemainingAtPause = getTimeRemaining(...)` and writes it.
 - [ ] `resumeGame()`: writes new `timerStartedAt = serverTimestamp() - (timerDuration - timeRemainingAtPause)`, clears `pausedAt` and `timeRemainingAtPause`.
@@ -325,6 +356,7 @@ src/lib/game/turn.ts                             # pauseGame(), resumeGame(), re
 - [ ] `meta/lastActiveAt` updated via `onDisconnect`.
 
 ### Critical Tests
+
 ```
 src/lib/game/turn.test.ts (continued):
   ✓ pauseGame() writes pausedAt as server timestamp
@@ -337,6 +369,7 @@ src/lib/game/turn.test.ts (continued):
 ```
 
 ### Acceptance Criteria
+
 - [ ] Admin pauses; timer freezes on all three browser tabs within 1 second
 - [ ] Admin resumes; remaining time is identical to pre-pause value (±200ms)
 - [ ] Change Explainer button is disabled (not just hidden) while timer is running
@@ -347,9 +380,11 @@ src/lib/game/turn.test.ts (continued):
 ---
 
 ## Phase 6 — Cleanup & Polish
+
 **Estimate: 1–2 days**
 
 ### Files to Create / Modify
+
 ```
 functions/src/index.ts                           # cleanupRooms scheduled function
 scripts/seed-emulator.ts                         # dev seed in 4 game states
@@ -357,6 +392,7 @@ src/components/phases/GameMain.svelte            # settings icon
 ```
 
 ### Tasks
+
 - [ ] `cleanupRooms`: scheduled every 30 min. Deletes rooms where `meta/lastActiveAt < now - 1hr`.
 - [ ] Seed script: writes 4 rooms to emulator in states: `explaining`, `post_expiry`, `round_end`, `finished`. Run with `npx ts-node scripts/seed-emulator.ts`.
 - [ ] Settings panel: change display name (any time), switch team (pre-start only).
@@ -365,6 +401,7 @@ src/components/phases/GameMain.svelte            # settings icon
 - [ ] Mobile viewport pass: all interactive elements ≥ 44px touch target.
 
 ### Critical Tests
+
 ```
 functions/src/cleanup.test.ts (emulator):
   ✓ cleanupRooms() deletes room where lastActiveAt is 2 hours ago
@@ -373,6 +410,7 @@ functions/src/cleanup.test.ts (emulator):
 ```
 
 ### Acceptance Criteria
+
 - [ ] `npx ts-node scripts/seed-emulator.ts` creates 4 navigable rooms; no setup clicks needed
 - [ ] Cleanup function deletes a test room with `lastActiveAt` set 2 hours in the past (emulator test)
 - [ ] No console errors during a full 3-round game in Chrome and Safari mobile
