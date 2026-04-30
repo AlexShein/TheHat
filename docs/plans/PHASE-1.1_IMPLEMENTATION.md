@@ -2,9 +2,16 @@
 
 ## Definition
 
-Establish all pure-logic modules and RTDB subscriptions needed before any UI can render. No `.svelte` files touched — this phase produces only `.ts` modules. After this phase: Google Sign-In initializes and tracks auth state; admin check works; color assignment works; room+player RTDB subscriptions are reactive; `createRoom()` and `joinRoom()` are tested against emulator; and the route loader resolves `roomId` + `playerId` from URL.
+Establish all pure-logic modules and RTDB subscriptions needed before any UI can render. No `.svelte` files touched — this phase produces only `.ts` modules. After this phase: sign-in works in both production (Google OAuth) and local dev (email/password via Auth Emulator); admin check works; color assignment works; room+player RTDB subscriptions are reactive; `createRoom()` and `joinRoom()` are tested against emulator; and the route loader resolves `roomId` + `playerId` from URL.
 
-**Auth flow:** User opens landing page → layout initializes Firebase Auth → `onAuthStateChanged` fires → if user is signed in, layout provides `currentUser` via Svelte context → `isAdmin()` checks `/admins/{uid}` → if admin, "Create Game" button renders; if not admin, only "Join a game" renders; if signed out, "Sign in with Google" button + "Join a game" renders (join never requires auth).
+**Auth flow (production):** User opens landing page → layout initializes Firebase Auth → `onAuthStateChanged` fires → if user is signed in, layout provides `currentUser` via Svelte context → `isAdmin()` checks `/admins/{uid}` → if admin, "Create Game" button renders; if not admin, only "Join a game" renders; if signed out, "Sign in with Google" button + "Join a game" renders (join never requires auth).
+
+**Auth flow (local dev with emulator):** Emulator has no Google OAuth. Instead, `signInWithGoogle()` detects `VITE_USE_EMULATOR=true` and falls back to `signInWithEmailAndPassword(auth, email, password)`. Landing page shows email input + "Sign In (Dev)" button instead of Google button. A bootstrap script (`scripts/dev-bootstrap.ts`) seeds the Auth Emulator with test users (admin + non-admin) and writes `/admins/{uid}` to emulator RTDB. Users start with `npm run dev:solo:full` (or `npm run dev:full` for multi-player testing).
+
+**Dev bootstrap script** creates:
+
+- Admin: `admin@test.com` / `password123`, uid written to `/admins` in emulator RTDB
+- Player: `player@test.com` / `password123`, no admin privileges
 
 ## Relevant Design Mockups
 
@@ -25,16 +32,17 @@ None. This phase produces no visible UI.
 - [ ] `npm run lint -- --max-warnings 0` exits 0
 - [ ] `npm run typecheck` exits 0
 
-## Files I Will Touch
-
-| File                                | Reason                                                                                                                |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/auth.ts`                   | NEW. `initAuth()` — Google sign-in init + auth state tracking; `isAdmin()` — whitelist check; `signIn()`, `signOut()` |
-| `src/lib/colors.ts`                 | NEW. `PLAYER_COLORS` palette, `assignColor(usedColors: Set<string>): string`                                          |
-| `src/lib/stores/room.ts`            | NEW. `onValue` subscription for `/rooms/{roomId}/meta`, `/rooms/{roomId}/config`, `/rooms/{roomId}/status`            |
-| `src/lib/stores/players.ts`         | NEW. `onValue` subscription for `/rooms/{roomId}/players` map                                                         |
-| `src/lib/game/room.ts`              | NEW. `createRoom()`, `joinRoom()`, `registerDisconnect()`                                                             |
-| `src/routes/room/[roomId]/+page.ts` | NEW. `load({ params, url })` — resolves `roomId`, `playerId`                                                          |
+| File                                | Reason                                                                                                                                                                               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/lib/auth.ts`                   | NEW. `initAuth()` — auth init + state tracking; `isAdmin()` — whitelist check; `signInWithGoogle()` — emulator-aware; `signInDevEmail()` — emulator-only email/password; `signOut()` |
+| `src/lib/colors.ts`                 | NEW. `PLAYER_COLORS` palette, `assignColor(usedColors: Set<string>): string`                                                                                                         |
+| `src/lib/stores/room.ts`            | NEW. `onValue` subscription for `/rooms/{roomId}/meta`, `/rooms/{roomId}/config`, `/rooms/{roomId}/status`                                                                           |
+| `src/lib/stores/players.ts`         | NEW. `onValue` subscription for `/rooms/{roomId}/players` map                                                                                                                        |
+| `src/lib/game/room.ts`              | NEW. `createRoom()`, `joinRoom()`, `registerDisconnect()`                                                                                                                            |
+| `src/routes/room/[roomId]/+page.ts` | NEW. `load({ params, url })` — resolves `roomId`, `playerId`                                                                                                                         |
+| `firebase.json`                     | MODIFY. Add `auth` emulator on port 9099                                                                                                                                             |
+| `scripts/dev-bootstrap.ts`          | NEW. Seeds emulator Auth + RTDB with test users; starts dev server                                                                                                                   |
+| `package.json`                      | MODIFY. Add `dev:bootstrap` script                                                                                                                                                   |
 
 ## Interfaces I Will Introduce or Modify
 
@@ -43,7 +51,8 @@ None. This phase produces no visible UI.
 import type { User } from "firebase/auth"
 export function initAuth(): { currentUser: { current: User | null }, loading: { current: boolean } }
 export function isAdmin(): Promise<boolean>
-export function signInWithGoogle(): Promise<void>
+export function signInWithGoogle(): Promise<void>  // production: Google popup; emulator: signs in with email/password fallback
+export function signInDevEmail(email: string, password: string): Promise<void>  // emulator-only; throws if VITE_USE_EMULATOR is not 'true'
 export function signOut(): Promise<void>
 export class AdminRequiredError extends Error { … }
 
@@ -86,8 +95,10 @@ export const load: PageLoad = ({ params, url }) => { … }
 src/lib/auth.test.ts:
   ✓ initAuth() returns currentUser=null before sign in
     → AC: initAuth() returns reactive store, null when signed out
-  ✓ initAuth() returns currentUser with uid after Google sign-in (emulator)
-    → AC: auth state tracked reactively
+  ✓ signInDevEmail() creates user in Auth Emulator and returns signed in
+    → AC: emulator sign-in works with email/password
+  ✓ signInDevEmail() throws when VITE_USE_EMULATOR is not 'true'
+    → AC: dev-only function guarded
   ✓ isAdmin() returns true when uid exists in /admins (emulator)
     → AC: isAdmin() returns true when uid exists in /admins
   ✓ isAdmin() returns false when uid absent from /admins

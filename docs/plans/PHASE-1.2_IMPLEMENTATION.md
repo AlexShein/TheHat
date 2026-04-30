@@ -8,26 +8,28 @@ Build all `.svelte` components for Phase 1 that render against the stores and ga
 
 1. Page loads → `+layout.svelte` calls `initAuth()` → shows loading spinner while auth resolves
 2. Auth resolves → landing page receives `currentUser` via page data/context
-3. **Signed out:** "Sign in with Google" button + "Join a game" input. Click "Sign in" → `signInWithGoogle()` redirects to Google. On return, auth state updates.
-4. **Signed in, not admin:** "Join a game" input only. No "Create Game" button.
-5. **Signed in, is admin:** "Create Game" button + "Join a game" input. Click "Create Game" → `RoomCreation` component.
-6. "Join a game" works regardless of auth state (join never requires auth).
-
-## Relevant Design Mockups
-
-| Mockup Folder                     | Relevance                                                                                       |
-| --------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `0._room_creation_form/code.html` | Room config form: teams, words-per-player, timer duration, skip penalty toggle, Create Room CTA |
-| `0._room_creation_post/code.html` | Post-creation: room ID with copy, invite link, QR code, "Start Playing" button                  |
-| `1._name_entry/code.html`         | Name input field, room ID header, Confirm CTA                                                   |
+3. **Production (VITE_USE_EMULATOR=false):**
+   - Signed out: "Sign in with Google" button + "Join a game" input
+   - Signed in, not admin: "Join a game" input only. Display name + sign out link.
+   - Signed in, is admin: "Create Game" button + "Join a game" input
+4. **Local dev (VITE_USE_EMULATOR=true):**
+   - Signed out: Email input + password input + "Sign In (Dev)" button + "Join a game" input
+   - Signed in, not admin: "Join a game" input only. Display name + sign out link.
+   - Signed in, is admin: "Create Game" button + "Join a game" input
+   - "Sign In (Dev)" calls `signInDevEmail(email, password)` → uses Auth Emulator
+   - Run `npm run dev:bootstrap` first to seed test users (admin@test.com / password123)
+5. "Join a game" works regardless of auth state (join never requires auth).
 
 ## Acceptance Criteria
 
 - [ ] Landing page: loading spinner while auth initializes (no flash of wrong UI)
-- [ ] Landing page (signed out): "Sign in with Google" button + "Join a game" input visible
+- [ ] Landing page (signed out, production): "Sign in with Google" button + "Join a game" input visible
+- [ ] Landing page (signed out, emulator): email + password inputs + "Sign In (Dev)" button + "Join a game" input visible
 - [ ] Landing page (signed in, not admin): "Join a game" input only. Your display name shown. Sign out link.
 - [ ] Landing page (signed in, is admin): "Create Game" button + "Join a game" input. Your display name shown. Sign out link.
-- [ ] Click "Sign in with Google" → Google sign-in popup → returns signed in → buttons update
+- [ ] Click "Sign In (Dev)" with admin@test.com / password123 → signed in as admin → "Create Game" button appears
+- [ ] Click "Sign In (Dev)" with player@test.com / password123 → signed in as non-admin → no "Create Game" button
+- [ ] Click "Sign in with Google" (production) → Google sign-in popup → returns signed in → buttons update
 - [ ] isAdmin() check runs only after auth state settles (no premature check on null user)
 - [ ] "Join a game" parses full invite link (extracts roomId from URL) or accepts plain room ID
 - [ ] Admin creates room via form with `numTeams`, `wordCount`, `timerDuration`, `skipPenalty`; sees RoomCreated screen with room ID, invite link, copy buttons, QR code
@@ -40,15 +42,15 @@ Build all `.svelte` components for Phase 1 that render against the stores and ga
 
 ## Files I Will Touch
 
-| File                                        | Reason                                                                                                                             |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `src/routes/+layout.svelte`                 | MODIFY. Call `initAuth()` on mount, pass `currentUser` + `loading` via context to all pages                                        |
-| `src/routes/+page.svelte`                   | REWRITE. Landing page: auth-aware — shows Sign In / Create Game / Join based on auth state + `isAdmin()`                           |
-| `src/components/phases/RoomCreation.svelte` | NEW. Room config form, calls `createRoom()`                                                                                        |
-| `src/components/phases/RoomCreated.svelte`  | NEW. Post-creation screen: room ID, invite link, QR code                                                                           |
-| `src/components/phases/NameEntry.svelte`    | NEW. Name input, calls `joinRoom()`, writes `?p=` to URL                                                                           |
-| `src/routes/room/[roomId]/+page.svelte`     | NEW. Phase switcher: reads `status` store, renders correct component                                                               |
-| `src/lib/context.ts`                        | NEW. `getAuthContext()` / `setAuthContext()` — typed context helpers for `currentUser` and `loading` (avoids string-based context) |
+| File                                        | Reason                                                                                                                                                          |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/routes/+layout.svelte`                 | MODIFY. Call `initAuth()` on mount, pass `currentUser` + `loading` via context to all pages                                                                     |
+| `src/routes/+page.svelte`                   | REWRITE. Landing page: auth-aware + emulator-aware — shows Google Sign-In (prod) or email/password (dev) + Create Game / Join based on auth state + `isAdmin()` |
+| `src/components/phases/RoomCreation.svelte` | NEW. Room config form, calls `createRoom()`                                                                                                                     |
+| `src/components/phases/RoomCreated.svelte`  | NEW. Post-creation screen: room ID, invite link, QR code                                                                                                        |
+| `src/components/phases/NameEntry.svelte`    | NEW. Name input, calls `joinRoom()`, writes `?p=` to URL                                                                                                        |
+| `src/routes/room/[roomId]/+page.svelte`     | NEW. Phase switcher: reads `status` store, renders correct component                                                                                            |
+| `src/lib/context.ts`                        | NEW. `getAuthContext()` / `setAuthContext()` — typed context helpers for `currentUser` and `loading` (avoids string-based context)                              |
 
 ## Interfaces I Will Introduce or Modify
 
@@ -76,11 +78,15 @@ export function getAuthContext(): AuthContext
 <script lang="ts">
   import { getAuthContext } from "$lib/context"
   import { isAdmin } from "$lib/auth"
-  import { signInWithGoogle, signOut } from "$lib/auth"
+  import { signInWithGoogle, signInDevEmail, signOut } from "$lib/auth"
+  import { VITE_USE_EMULATOR } from "$env/static/public" // or import.meta.env
   let { currentUser, loading } = getAuthContext()
   let isUserAdmin = $state(false)
+  let devEmail = $state("")
+  let devPassword = $state("")
+  let isEmulator = VITE_USE_EMULATOR === "true"
   // $effect: when currentUser changes & loading=false, call isAdmin() if signed in
-  // Renders three states: signed out, signed in non-admin, signed in admin
+  // Renders four states: signed out (prod), signed out (emulator), signed in non-admin, signed in admin
 </script>
 
 // src/components/phases/RoomCreation.svelte (component, no exports)
@@ -119,14 +125,18 @@ export function getAuthContext(): AuthContext
 
 No unit tests for `.svelte` files in this phase. AC verification is manual (emulator + browser). Phase 1.1 tests cover all logic.
 
+**Prerequisite:** Run `npm run dev:bootstrap` once to seed emulator with test users.
+
 Manual test checklist:
 
 ```
-□ Admin signs in → sees "Create Game" button
-□ Non-admin (incognito, no auth) → sees only "Join a game" input
+□ Start with npm run dev:solo:full (or dev:full for multi-player)
+□ Landing page shows loading spinner briefly, then "Sign In (Dev)" form (emulator mode detected)
+□ Enter admin@test.com / password123 → click "Sign In (Dev)" → display name appears, "Create Game" button visible
+□ Sign out → enter player@test.com / password123 → signed in, no "Create Game" button
+□ Sign out → "Join a game" accepts room ID "abc123" → navigates to /room/abc123
 □ Paste full URL "https://example.com/room/abc123" → parses to roomId "abc123"
-□ Type room ID "abc123" → navigates to /room/abc123
-□ Admin configures room with 3 teams, 7 words, 90s timer, skip penalty on → creates room
+□ Admin creates room with 3 teams, 7 words, 90s timer, skip penalty on → sees RoomCreated
 □ RoomCreated shows 8-char room ID, working copy buttons, QR code
 □ "Start Playing" navigates to /room/{roomId}
 □ NameEntry shows room ID header, input field, Confirm button
