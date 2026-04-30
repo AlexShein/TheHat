@@ -82,4 +82,4 @@ jobs:
           echo "VITE_FIREBASE_APP_ID=ci-app" >> .env
           echo "VITE_USE_EMULATOR=false" >> .env
       - run: npm run build
-      - run: test -d build && ls build/index.html
+      - run: test -d build && ls build/200.html
