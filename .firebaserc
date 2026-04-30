@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "the-word-guessing-game",
+    "TheHat": "the-word-guessing-game"
+  },
+  "targets": {},
+  "etags": {}
+}

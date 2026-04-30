@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npx eslint . --max-warnings 0
+      - run: npx svelte-check && npx tsc --noEmit
+
+  unit-tests:
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run test:ci
+        env:
+          CI: true
+
+  firebase-rules:
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run test:rules
+        env:
+          CI: true
+
+  build:
+    needs: [unit-tests, firebase-rules]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+      - run: npm ci
+      - run: |
+          touch .env
+          echo "VITE_FIREBASE_API_KEY=ci-key" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=ci.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_DATABASE_URL=https://ci.firebaseio.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=ci-project" >> .env
+          echo "VITE_FIREBASE_APP_ID=ci-app" >> .env
+          echo "VITE_USE_EMULATOR=false" >> .env
+      - run: npm run build
+      - run: test -d build && ls build/index.html

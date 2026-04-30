@@ -1,0 +1,9 @@
+node_modules/
+build/
+.svelte-kit/
+.env.local
+.firebase/
+coverage/
+
+tmp*
+service-account*.json
