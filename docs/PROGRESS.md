@@ -93,3 +93,21 @@ Team join/switch logic (`joinTeam` validates team node, writes atomic `teamId`),
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire Lobby into PreStart branch |
 | `src/lib/game/words.ts` | MODIFY — advanceToLobby creates team nodes |
 | `src/lib/game/words.test.ts` | MODIFY — advanceToLobby test asserts team nodes, wraps in withSecurityRulesDisabled |
+
+---
+
+## Bugfix — isAdmin Always False in Players Collection ✅
+
+Root cause: `joinRoom` hardcoded `isAdmin: false` for all players. `joinRoomAsCurrentUser` never checked `/admins/{uid}` whitelist. Fix adds `isAdmin` parameter to `joinRoom`, checks `/admins/{playerId}` in `joinRoomAsCurrentUser` before writing player node. Updated all test files to pass explicit `isAdmin` arg. 76 tests pass, lint clean. `room.ts` coverage 100%.
+| `src/lib/game/room.ts` | MODIFY — joinRoom accepts isAdmin param, joinRoomAsCurrentUser reads /admins whitelist |
+| `src/lib/game/room.test.ts` | MODIFY — joinRoom calls pass explicit isAdmin arg |
+| `src/lib/game/join-room.test.ts` | MODIFY — add isAdmin:true/whitelist test, isAdmin:false/no-whitelist test |
+| `src/lib/game/lobby.test.ts` | MODIFY — joinRoom calls pass explicit isAdmin arg |
+| `src/lib/game/words.test.ts` | MODIFY — joinRoom calls pass explicit isAdmin arg |
+
+## Bugfix — Room Creator Write Access to Teams, Status, GameState ✅
+
+Room creator (non-admin) could not write to `/teams/{teamId}`, `/status`, or `/gameState` because security rules required global `/admins/{uid}` whitelist. Fix adds `|| root.child('rooms').child($roomId).child('meta').child('createdBy').val() === auth.uid` to `.write` rules. Added 5 rule tests for room-creator-as-admin access (teams write, status write, gameState write, denied for non-creator). Fixed path traversal: `data.parent().parent()` failed when intermediate nodes don't exist; switched to `root.child('rooms').child($roomId)` for reliable resolution. Dropped `.validate` on teams node (Firebase emulator `hasChildren` quirk at nested capture level), shape enforced by game logic. Removed pre-existing `console.log` in `+page.svelte`. 12 rules tests pass, lint clean.
+| `database.rules.json` | MODIFY — teams, status, gameState .write allow room creator |
+| `src/lib/rules.test.ts` | MODIFY — 5 new "room creator as room admin" tests |
+| `src/routes/+page.svelte` | MODIFY — removed console.log |
