@@ -66,7 +66,12 @@
         isAdmin={playersStore.players[localPlayerId]?.isAdmin ?? false}
       />
     {:else}
-      <NameEntry roomId={data.roomId} />
+      <NameEntry
+        roomId={data.roomId}
+        onjoined={(playerId) => {
+          localPlayerId = playerId
+        }}
+      />
     {/if}
   {:else if status === RoomStatus.PreStart}
     <p class="text-center text-gray-600">Lobby — coming soon</p>

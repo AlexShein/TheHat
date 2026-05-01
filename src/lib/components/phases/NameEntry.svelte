@@ -10,10 +10,11 @@
 
   interface Props {
     roomId: string
+    onjoined?: (playerId: string) => void
   }
 
   const url = $derived(page.url);
-  let { roomId }: Props = $props()
+  let { roomId, onjoined }: Props = $props()
 
   let name = $state("")
   let error = $state("")
@@ -52,6 +53,7 @@
         replaceState(resolve(path, {"p": playerId}), {})
       }
       joined = true
+      onjoined?.(playerId)
     } catch (e: unknown) {
       if (e instanceof PlayerLimitError) {
         error = "Room is full — all player slots taken"
