@@ -48,31 +48,6 @@ beforeAll(async () => {
   checkAllReady = mod.checkAllReady
 })
 
-/**
- * Sets up team nodes matching database.rules.json validate:
- * name, playerOrder, currentPlayerIndex, roundScores.
- * Uses withSecurityRulesDisabled because only admin can write /teams,
- * and the emulator's authenticatedContext doesn't bridge the admin node
- * set up in beforeAll reliably for rules evaluation.
- */
-async function setupTeams(roomId: string): Promise<void> {
-  await testEnv.withSecurityRulesDisabled(async (ctx) => {
-    const db = ctx.database()
-    await db.ref(`rooms/${roomId}/teams/team-1`).set({
-      name: "Team 1",
-      playerOrder: [],
-      currentPlayerIndex: 0,
-      roundScores: { round1: 0, round2: 0, round3: 0 },
-    })
-    await db.ref(`rooms/${roomId}/teams/team-2`).set({
-      name: "Team 2",
-      playerOrder: [],
-      currentPlayerIndex: 0,
-      roundScores: { round1: 0, round2: 0, round3: 0 },
-    })
-  })
-}
-
 describe("joinTeam", () => {
   it("writes player.teamId to the specified team", async () => {
     const adminDb = emulatorDb(ADMIN_UID)
@@ -83,8 +58,9 @@ describe("joinTeam", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
-    await setupTeams(roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
     await joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-1")
 
@@ -101,8 +77,9 @@ describe("joinTeam", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
-    await setupTeams(roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
     await joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-1")
     await joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-2")
@@ -120,8 +97,9 @@ describe("joinTeam", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
-    await setupTeams(roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
     await joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-1")
 
@@ -144,8 +122,9 @@ describe("joinTeam", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
-    await setupTeams(roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
     await expect(
       joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-nonexistent"),
@@ -163,8 +142,9 @@ describe("setReady", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
-    await setupTeams(roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
     await joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-1")
 
     await setReady(playerDb as unknown as Database, roomId, P1_UID, true)
@@ -182,8 +162,9 @@ describe("setReady", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
-    await setupTeams(roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
     await joinTeam(playerDb as unknown as Database, roomId, P1_UID, "team-1")
     await setReady(playerDb as unknown as Database, roomId, P1_UID, true)
 
@@ -202,7 +183,9 @@ describe("setReady", () => {
     )
     const playerDb = emulatorDb(P1_UID)
     await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
-    await advanceToLobby(adminDb as unknown as Database, roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
     await expect(setReady(playerDb as unknown as Database, roomId, P1_UID, true)).rejects.toThrow(
       "Must select a team before marking ready",

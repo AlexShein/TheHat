@@ -290,7 +290,7 @@ describe("getPlayerWords", () => {
 })
 
 describe("advanceToLobby", () => {
-  it("writes status: 'pre-start' to room", async () => {
+  it("writes status: 'pre-start' and creates team nodes", async () => {
     const adminDb = emulatorDb(ADMIN_UID)
     const roomId = await createRoom(
       adminDb as unknown as Database,
@@ -298,10 +298,23 @@ describe("advanceToLobby", () => {
       ADMIN_UID,
     )
 
-    await advanceToLobby(adminDb as unknown as Database, roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
-    const snap = await adminDb.ref(`rooms/${roomId}/status`).once("value")
-    expect(snap.val()).toBe("pre-start")
+    const statusSnap = await adminDb.ref(`rooms/${roomId}/status`).once("value")
+    expect(statusSnap.val()).toBe("pre-start")
+
+    // Verify team nodes created
+    const team1Snap = await adminDb.ref(`rooms/${roomId}/teams/team-1`).once("value")
+    const team2Snap = await adminDb.ref(`rooms/${roomId}/teams/team-2`).once("value")
+    expect(team1Snap.exists()).toBe(true)
+    expect(team2Snap.exists()).toBe(true)
+    expect(team1Snap.val().name).toBe("Team 1")
+    expect(team2Snap.val().name).toBe("Team 2")
+    expect(team1Snap.val().playerOrder).toBeUndefined()
+    expect(team1Snap.val().currentPlayerIndex).toBe(0)
+    expect(team1Snap.val().roundScores).toEqual({ round1: 0, round2: 0, round3: 0 })
   })
 
   it("called by non-admin throws permission-denied", async () => {
