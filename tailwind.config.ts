@@ -1,9 +1,10 @@
 import type { Config } from "tailwindcss"
+import typography from "@tailwindcss/typography"
 
 export default {
   content: ["./src/**/*.{html,svelte,ts}"],
   theme: {
     extend: {},
   },
-  plugins: [require("@tailwindcss/typography")],
+  plugins: [typography],
 } satisfies Config

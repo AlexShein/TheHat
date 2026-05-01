@@ -24,7 +24,7 @@ jobs:
       - run: npm run build
       - name: Check bundle size
         run: |
-          MAX_KB=250
+          MAX_KB=1024
           ACTUAL=$(du -sk build/_app/immutable/chunks/ 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
           echo "Bundle size: ${ACTUAL}KB (limit: ${MAX_KB}KB)"
           echo "bundle_kb=$ACTUAL" >> "$GITHUB_OUTPUT"

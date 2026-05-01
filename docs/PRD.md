@@ -19,6 +19,13 @@ A real-time multiplayer web app for the party game "Hat" (Шляпа). Players a
 
 ## Game Flow
 
+### Phase 0 — Landing Page
+
+- Visited at root route `/`.
+- **Admin** (authenticated via Google, whitelisted): sees "Create Game" button.
+- **Non-admin** (unauthenticated or not whitelisted): sees "Join a game" — text field to enter room ID or paste full invite link. Button navigates to `/room/{roomId}`.
+- No authentication required to join — room ID from the link is sufficient.
+
 ### Phase 1 — Room Creation (Admin only)
 
 - Admin creates a room. Room gets a short unique ID (nanoid, ~8 chars).

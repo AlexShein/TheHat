@@ -1,6 +1,7 @@
 # TheHat
 
 Word guessing game mobile-first web app.
+Supports up to 16 players.
 
 ## Admin Management
 
@@ -49,6 +50,7 @@ GitHub Actions on PR + push to `main`: `lint-and-typecheck` → `unit-tests` + `
 
 ```bash
 npm install
+npm run dev:bootstrap    # Create local emulators data - seed test users
 npm run dev:solo         # Dev server with solo bypass
 npm run emulators        # Firebase emulators (RTDB + Auth)
 npm run dev:solo:full    # Both together

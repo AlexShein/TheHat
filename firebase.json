@@ -1,11 +1,7 @@
 {
   "hosting": {
     "public": "build",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
         "source": "**",
@@ -14,8 +10,13 @@
     ]
   },
   "emulators": {
+    "auth": {
+      "port": 9099
+    },
     "database": {
-      "port": 9000
+      "port": 9000,
+      "import": "./.emulators-data",
+      "export_on_exit": true
     },
     "functions": {
       "port": 5001

@@ -63,4 +63,11 @@ export interface GameState {
   playerStats: Record<string, PlayerStats>
 }
 
-export type RoomStatus = "word-entry" | "pre-start" | "playing" | "finished"
+export const RoomStatus = {
+  WordEntry: "word-entry",
+  PreStart: "pre-start",
+  Playing: "playing",
+  Finished: "finished",
+} as const
+
+export type RoomStatus = (typeof RoomStatus)[keyof typeof RoomStatus]

@@ -1,6 +1,7 @@
 node_modules/
 build/
 .svelte-kit/
+.env
 .env.local
 .firebase/
 coverage/
@@ -8,4 +9,5 @@ coverage/
 tmp*
 service-account*.json
 
+.emulators-data/
 *.log

@@ -37,7 +37,7 @@ jobs:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ runner.os }}
       - run: npm ci
-      - run: npm run test:ci
+      - run: npm run test
         env:
           CI: true
 
