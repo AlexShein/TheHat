@@ -81,3 +81,13 @@ Fixed `allPlayersSubmitted` $derived returning function instead of boolean (bloc
 Fixed svelte `state_referenced_locally` warnings — wrapped `createRoomStore(roomId)` and `createPlayersStore(roomId)` in `$derived()`. Fixed 3 test `Object is possibly 'undefined'` errors with non-null assertions after length check on Record indexing. `npm run lint` and `npx svelte-check` both pass with 0 errors/warnings.
 | `src/lib/components/phases/WordEntry.svelte` | MODIFY — $derived wrappers |
 | `src/lib/game/words.test.ts` | MODIFY — non-null assertions |
+
+---
+
+## Phase 2.2 — Lobby: Team Selection & Ready ✅
+
+Team join/switch logic (`joinTeam` validates team node, writes atomic `teamId`), ready toggle (`setReady` guards against null teamId), and pure `checkAllReady` function (words-submitted, ready, min-players-per-team with bypass). Lobby component renders team cards with colored dots, join/switch buttons, ready checkbox, and admin "Start Game" placeholder. All 14 lobby tests pass (69 total), lint clean, coverage 97%+ on lobby.ts.
+| `src/lib/game/lobby.ts` | NEW — joinTeam, setReady, checkAllReady |
+| `src/lib/game/lobby.test.ts` | NEW — 14 tests |
+| `src/lib/components/phases/Lobby.svelte` | NEW — team cards, join, ready toggle, admin start button |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire Lobby into PreStart branch |

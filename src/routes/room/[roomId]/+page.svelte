@@ -3,6 +3,7 @@
   import type { PageProps } from "./$types"
   import NameEntry from "$lib/components/phases/NameEntry.svelte"
   import WordEntry from "$lib/components/phases/WordEntry.svelte"
+  import Lobby from "$lib/components/phases/Lobby.svelte"
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
   import { RoomStatus } from "$lib/db-types"
@@ -74,7 +75,21 @@
       />
     {/if}
   {:else if status === RoomStatus.PreStart}
-    <p class="text-center text-gray-600">Lobby — coming soon</p>
+    {#if localPlayerId && playersStore.players[localPlayerId] && roomStore.config}
+      <Lobby
+        roomId={data.roomId}
+        playerId={localPlayerId}
+        isAdmin={playersStore.players[localPlayerId]?.isAdmin ?? false}
+        bypassMinPlayers={import.meta.env.VITE_DEV_BYPASS_MIN_PLAYERS === "true"}
+        players={playersStore.players}
+        config={{ numTeams: roomStore.config.numTeams }}
+        onstart={() => {
+          // TODO Phase 2.3: wire to initializeGameState()
+        }}
+      />
+    {:else}
+      <p class="text-center text-gray-600">Loading lobby…</p>
+    {/if}
   {:else if status === RoomStatus.Playing}
     <p class="text-center text-gray-600">Game — coming soon</p>
   {:else if status === RoomStatus.Finished}
