@@ -114,9 +114,24 @@ Room creator (non-admin) could not write to `/teams/{teamId}`, `/status`, or `/g
 
 ---
 
+## Bugfix — PERMISSION_DENIED on `/teams` When Starting Game ✅
+
+`initializeGameState()` writes whole `teams` object at once (`set(ref(db, rooms/${roomId}/teams), teams)`). Security rules had `.write` only at `teams/$teamId` capture level — no rule matched the parent `teams` path. RTDB applied DENY. Fix: add `.write` at `teams` level, same condition as `$teamId` (admin or room creator).
+| `database.rules.json` | MODIFY — add `.write` at `teams` parent level |
+
 ## Bugfix — Stuck "Loading lobby…" for Unjoined Players ✅
 
 User visiting `/room/{id}` after admin advanced to lobby saw permanent "Loading lobby…" because page's PreStart branch required `localPlayerId && playersStore.players[localPlayerId] && roomStore.config`, which was false for unjoined players. Extracted routing into pure function `getRoomRoute()` in `src/lib/game/room-route.ts` (100% coverage, 11 tests). Page now routes unjoined PreStart visitors to NameEntry instead of the dead-end else branch. Added `game-already-started` screen for unjoined visitors when status is playing/finished.
 | `src/lib/game/room-route.ts` | NEW — pure routing decision function |
 | `src/lib/game/room-route.test.ts` | NEW — 11 tests, all routing combinations |
 | `src/routes/room/[roomId]/+page.svelte` | REWRITE — delegates rendering to getRoomRoute() |
+
+---
+
+## Phase 2.3 — Game Initialization & Start Trigger ✅
+
+`initializeGameState()` builds hat, teams, gameState, and transitions `status` from `pre-start` → `playing`. 24 tests pass, 99% coverage. Lint pass, all lint rules satisfied. Lobby "Start Game" button wires to `initializeGameState()`, with error toast on failure and loading spinner during async call. Fixes: auth-admin race resolved with application-level admin check using callerUid and `DataSnapshot`+type guard; RTDB null-stripping handled (undefined expected, not null).
+| `src/lib/game/turn.ts` | NEW — initializeGameState, shuffle, error classes |
+| `src/lib/game/turn.test.ts` | NEW — 24 tests (hat, teams, guards, edges, bypass, permissions) |
+| `src/lib/components/phases/Lobby.svelte` | MODIFY — Start Game button async call, loading/error state |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire initializeGameState with callerUid from authStore |
