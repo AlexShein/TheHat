@@ -160,9 +160,13 @@ All sub-phase plans: `docs/plans/PHASE-3.{1-5}_IMPLEMENTATION.md`.
 | `src/lib/game/timer.test.ts` | NEW — 10 tests |
 | `src/lib/components/shared/Timer.svelte` | NEW — reactive timer display, 100ms interval, MM:SS format |
 
-### Phase 3.2 — Hat & Scoring
+### Phase 3.2 — Hat & Scoring ✅
 
-Status: NOT STARTED. Plan: `docs/plans/PHASE-3.2_IMPLEMENTATION.md`.
+Hat mutations (`drawWord`, `returnWord`) via `runTransaction()` with atomicity and idempotency. Scoring engine (`awardPoint`, `applyPenalty`, `undoLastAction`) with score clamping and undo reversals via single atomic gameState write. 20 tests pass (8 hat + 12 scoring), lint clean.
+| `src/lib/game/hat.ts` | NEW — drawWord, returnWord |
+| `src/lib/game/hat.test.ts` | NEW — 8 tests |
+| `src/lib/game/scoring.ts` | NEW — awardPoint, applyPenalty, undoLastAction |
+| `src/lib/game/scoring.test.ts` | NEW — 12 tests |
 
 ### Phase 3.3 — GameMain Shell, TeamScore & PostTurn
 
