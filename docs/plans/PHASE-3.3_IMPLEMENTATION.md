@@ -18,7 +18,7 @@ No Firebase writes. All state from `gameStateStore`. Phase 3.5 plugs ExplainerVi
 1. `GameMain.svelte` renders without console errors when `gameStateStore` provides valid data.
 2. In `waiting_start` phase: shows current explainer name, "Waiting to start..." text, timer at full duration (not counting down).
 3. In `explaining` phase: explainer sees `ExplainerView` placeholder (Phase 3.5), observers see timer + current word indicator (not the word text — observers never see the word). **CONFLICT FLAG: PRD says "all players see timer", but word is visible only to explainer. Implementation plan says observer view is non-interactive timer + team scoreboards. Verify.**
-4. In `post_expiry` phase: explainer sees `ExplainerView` with post-expiry mode (Guessed + team selector + Skip), observers see timer at 0 + word visible to all (post-expiry word is revealed). **CONFLICT FLAG: PRD says word is shown after expiry. Implement.**
+4. In `post_expiry` phase: explainer sees `ExplainerView` with post-expiry mode (Guessed + team selector + Skip), observers see timer at 0.
 5. In `post_turn` phase: `PostTurn.svelte` renders, showing count of words guessed this turn by the active team.
 6. `PostTurn.svelte` shows correct words-guessed count by reading `playerStats` delta or `team roundScores` increment. **CONFLICT FLAG: Implementation plan says "count of words guessed this turn by active team" but no dedicated field exists in schema for per-turn count. Must derive from lastAction history or track separately. Recommendation: add `wordsGuessedThisTurn: number` field to `gameState` for PostTurn display. Update `db-types.ts`.**
 7. `TeamScore.svelte` displays team name and total score (sum of round1 + round2 + round3). Active team highlighted.

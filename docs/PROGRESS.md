@@ -154,12 +154,11 @@ All sub-phase plans: `docs/plans/PHASE-3.{1-5}_IMPLEMENTATION.md`.
 
 ### Phase 3.1 — Timer & GameState Store ✅
 
-`gameStateStore` (RTDB subscription, `$state` rune), `getTimeRemaining()` pure function (server-time-based, clamp to 0, pause-resume), `Timer.svelte` reactive display with MM:SS + red under 10s + `aria-live`. 13 timer tests pass. Lint clean.
+`gameStateStore` (RTDB subscription, `$state` rune), `getTimeRemaining()` pure function (server-time-based, clamp to 0, pause-resume), `Timer.svelte` reactive display with MM:SS + red under 10s + `aria-live`. 10 timer tests pass. Lint clean.
 | `src/lib/stores/gameState.svelte.ts` | NEW — RTDB subscription, reactive game state |
-| `src/lib/game/timer.ts` | NEW — getTimeRemaining, isTimerExpired, isTimerRunning |
-| `src/lib/game/timer.test.ts` | NEW — 13 tests |
-| `src/lib/components/shared/Timer.svelte` | NEW — reactive timer display |
-| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire gameStateStore into playing branch |
+| `src/lib/game/timer.ts` | NEW — getTimeRemaining pure function |
+| `src/lib/game/timer.test.ts` | NEW — 10 tests |
+| `src/lib/components/shared/Timer.svelte` | NEW — reactive timer display, 100ms interval, MM:SS format |
 
 ### Phase 3.2 — Hat & Scoring
 
