@@ -2,6 +2,7 @@
   import { onMount } from "svelte"
   import type { PageProps } from "./$types"
   import NameEntry from "$lib/components/phases/NameEntry.svelte"
+  import WordEntry from "$lib/components/phases/WordEntry.svelte"
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
   import { RoomStatus } from "$lib/db-types"
@@ -59,7 +60,11 @@
   {:else if status === RoomStatus.WordEntry}
     {#if localPlayerId && playersStore.players[localPlayerId]}
       <!-- Player already joined, but word-entry phase -->
-      <p class="text-center text-gray-600">Word Entry — coming soon</p>
+      <WordEntry
+        roomId={data.roomId}
+        playerId={localPlayerId}
+        isAdmin={playersStore.players[localPlayerId]?.isAdmin ?? false}
+      />
     {:else}
       <NameEntry roomId={data.roomId} />
     {/if}

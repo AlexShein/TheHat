@@ -58,3 +58,26 @@ NameEntry used random playerId ≠ auth.uid. Security rules rejected writes. Add
 Added Firebase anonymous sign-in for players without Google. Moved from global layout to room-page-only to avoid competing credentials with admin Google sign-in on landing. Fixed parallel test race.
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — onMount anonymous sign-in |
 | `src/lib/auth.test.ts` | MODIFY — idempotent ensureEmailUser |
+
+---
+
+## Phase 2.1 — Word Entry ✅
+
+Word entry screen: add words to RTDB `/words/{wordId}`, validate (non-empty, ≤50 chars), submit flips `wordsSubmitted: true`, admin advances to lobby. All acceptance criteria met. 14 new tests, all 55 suite tests pass, lint clean.
+| `src/lib/game/words.ts` | NEW — addWord, submitWords, getPlayerWords, advanceToLobby |
+| `src/lib/game/words.test.ts` | NEW — 14 tests (validation, idempotency, isolation, permissions) |
+| `src/lib/components/phases/WordEntry.svelte` | NEW — input, word list, submit, advance button |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wired WordEntry into `word-entry` status branch |
+
+---
+
+## Bugfix: WordEntry Reactivity + Race Condition ✅
+
+Fixed `allPlayersSubmitted` $derived returning function instead of boolean (blocked admin advance button). Fixed hard-refresh race where `submitted` state read from unpopulated store snapshot. Added $effect to sync `submitted` from reactive store. Fixed negative "X more words" display when wordCount decreases.
+| `src/lib/components/phases/WordEntry.svelte` | MODIFY — $derived fix, $effect sync, count clamp |
+
+## Bugfix: Lint & Type Warnings Cleanup ✅
+
+Fixed svelte `state_referenced_locally` warnings — wrapped `createRoomStore(roomId)` and `createPlayersStore(roomId)` in `$derived()`. Fixed 3 test `Object is possibly 'undefined'` errors with non-null assertions after length check on Record indexing. `npm run lint` and `npx svelte-check` both pass with 0 errors/warnings.
+| `src/lib/components/phases/WordEntry.svelte` | MODIFY — $derived wrappers |
+| `src/lib/game/words.test.ts` | MODIFY — non-null assertions |
