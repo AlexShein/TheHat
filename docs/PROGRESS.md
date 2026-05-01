@@ -135,3 +135,44 @@ User visiting `/room/{id}` after admin advanced to lobby saw permanent "Loading 
 | `src/lib/game/turn.test.ts` | NEW — 24 tests (hat, teams, guards, edges, bypass, permissions) |
 | `src/lib/components/phases/Lobby.svelte` | MODIFY — Start Game button async call, loading/error state |
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire initializeGameState with callerUid from authStore |
+
+---
+
+## Phase 3 — Core Game Turn (Split into 5 sub-phases)
+
+Phase 3 is too large (4–5 days, 10+ files) for single AI-SWE session. Split into:
+
+| Sub-phase | Scope                                    | Files | Depends on                        |
+| --------- | ---------------------------------------- | ----- | --------------------------------- |
+| 3.1       | Timer logic + gameStateStore             | 3     | Phase 2.3 (gameState node exists) |
+| 3.2       | Hat mutations + scoring                  | 3     | Phase 3.1 (types)                 |
+| 3.3       | GameMain shell, TeamScore, PostTurn      | 5     | Phase 3.1 (gameStateStore)        |
+| 3.4       | Turn orchestration, timer expiry handler | 2     | Phase 3.1, 3.2                    |
+| 3.5       | ExplainerView controls                   | 3     | Phase 3.2, 3.3, 3.4               |
+
+All sub-phase plans: `docs/plans/PHASE-3.{1-5}_IMPLEMENTATION.md`.
+
+### Phase 3.1 — Timer & GameState Store ✅
+
+`gameStateStore` (RTDB subscription, `$state` rune), `getTimeRemaining()` pure function (server-time-based, clamp to 0, pause-resume), `Timer.svelte` reactive display with MM:SS + red under 10s + `aria-live`. 13 timer tests pass. Lint clean.
+| `src/lib/stores/gameState.svelte.ts` | NEW — RTDB subscription, reactive game state |
+| `src/lib/game/timer.ts` | NEW — getTimeRemaining, isTimerExpired, isTimerRunning |
+| `src/lib/game/timer.test.ts` | NEW — 13 tests |
+| `src/lib/components/shared/Timer.svelte` | NEW — reactive timer display |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire gameStateStore into playing branch |
+
+### Phase 3.2 — Hat & Scoring
+
+Status: NOT STARTED. Plan: `docs/plans/PHASE-3.2_IMPLEMENTATION.md`.
+
+### Phase 3.3 — GameMain Shell, TeamScore & PostTurn
+
+Status: NOT STARTED. Plan: `docs/plans/PHASE-3.3_IMPLEMENTATION.md`.
+
+### Phase 3.4 — Turn Orchestration & Timer Expiry Handler
+
+Status: NOT STARTED. Plan: `docs/plans/PHASE-3.4_IMPLEMENTATION.md`.
+
+### Phase 3.5 — ExplainerView
+
+Status: NOT STARTED. Plan: `docs/plans/PHASE-3.5_IMPLEMENTATION.md`.
