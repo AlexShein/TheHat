@@ -120,3 +120,12 @@ User visiting `/room/{id}` after admin advanced to lobby saw permanent "Loading 
 | `src/lib/game/room-route.ts` | NEW — pure routing decision function |
 | `src/lib/game/room-route.test.ts` | NEW — 11 tests, all routing combinations |
 | `src/routes/room/[roomId]/+page.svelte` | REWRITE — delegates rendering to getRoomRoute() |
+
+---
+
+## Phase 2.3 — Game Initialization & Start Trigger ✅
+
+`initializeGameState()` builds hat, teams, gameState, and transitions `status` from `pre-start` → `playing`. 21 tests pass, 99% coverage. Lint pass, all lint rules satisfied. Lobby "Start Game" button wires to `initializeGameState()`, with error toast on failure and loading spinner during async call.
+| `src/lib/game/turn.ts` | NEW — initializeGameState, shuffle, error classes |
+| `src/lib/game/turn.test.ts` | NEW — 21 tests (hat, teams, guards, edges, bypass) |
+| `src/lib/components/phases/Lobby.svelte` | MODIFY — Start Game button async call, loading/error state |
