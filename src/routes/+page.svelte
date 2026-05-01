@@ -10,6 +10,7 @@
 
   let isUserAdmin = $state(false)
   let adminCheckDone = $state(false)
+  let adminCheckError = $state("")
   let devEmail = $state("")
   let devPassword = $state("")
   let devError = $state("")
@@ -28,12 +29,21 @@
     if (!user) {
       isUserAdmin = false
       adminCheckDone = true
+      adminCheckError = ""
       return
     }
-    isAdmin(db, auth).then((result) => {
-      isUserAdmin = result
-      adminCheckDone = true
-    })
+    isAdmin(db, auth).then(
+      (result) => {
+        isUserAdmin = result
+        adminCheckDone = true
+        adminCheckError = ""
+      },
+      (err: unknown) => {
+        adminCheckError = err instanceof Error ? err.message : "Failed to check admin status"
+        adminCheckDone = true
+        isUserAdmin = false
+      },
+    )
   })
 
   async function handleGoogleSignIn() {
@@ -105,6 +115,13 @@
 <div class="mx-auto max-w-md px-4 pt-16">
   <h1 class="text-3xl font-bold text-center">The Hat</h1>
   <p class="text-center mt-2 text-gray-600">Word guessing game</p>
+
+  <!-- Admin check error -->
+  {#if adminCheckError}
+    <div class="mt-4 p-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm" role="alert">
+      {adminCheckError}
+    </div>
+  {/if}
 
   <!-- Admin check spinner -->
   {#if showAdminSpinner}

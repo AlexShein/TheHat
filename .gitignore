@@ -9,4 +9,5 @@ coverage/
 tmp*
 service-account*.json
 
+.emulators-data/
 *.log

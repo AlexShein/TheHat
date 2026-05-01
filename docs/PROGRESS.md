@@ -15,7 +15,7 @@
 | `.nvmrc`                    | Node 22 pin                                                 |
 | `.env.example`              | Firebase config stubs                                       |
 | `.gitignore`                | build, node_modules, .env, firebase debug                   |
-| `.firebaserc`               | Default project: thehat-game                                |
+| `.firebaserc`               | Default project: the-word-guessing-game                     |
 | `firebase.json`             | Hosting + database emulator on port 9000                    |
 | `database.rules.json`       | RTDB security rules (admin whitelist, room validation)      |
 | `src/app.html`              | SvelteKit HTML shell                                        |
@@ -42,7 +42,7 @@
 
 ### Manual Steps Remaining
 
-1. Create Firebase project Spark plan: thehat-game
+1. Create Firebase project Spark plan: the-word-guessing-game
 2. Enable RTDB, Auth Google, Hosting
 3. **First admin setup:** Sign in locally, copy UID from DevTools → Session Storage, add `/admins/{YOUR_UID}: true` in Firebase Console RTDB. After this, use `scripts/add-admin.ts` for everyone else (see `README.md` Admin Management section).
 4. Set Firebase config values in `.env.local`
