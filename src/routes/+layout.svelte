@@ -14,7 +14,12 @@
     })
 
     const unsub = initAuth(auth, (user) => {
-      authStore.setUser(user)
+      if (user) {
+        authStore.setUser(user)
+      } else {
+        // No user — landing page stays passive. Room page handles its own auth.
+        authStore.setLoading(false)
+      }
     })
 
     return unsub

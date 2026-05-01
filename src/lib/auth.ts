@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  signInAnonymously as firebaseSignInAnonymously,
 } from "firebase/auth"
 import { signInWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth"
 import { type Database, ref, get } from "firebase/database"
@@ -57,6 +58,12 @@ export async function handleRedirectResult(auth: Auth): Promise<void> {
 /** Sign out current user. */
 export async function signOut(auth: Auth): Promise<void> {
   await firebaseSignOut(auth)
+}
+
+/** Sign in anonymously. No-op if already authenticated. */
+export async function signInAnonymously(auth: Auth): Promise<void> {
+  // Firebase sdk no-ops if already signed in (returns current user)
+  await firebaseSignInAnonymously(auth)
 }
 
 /** Checks whether the currently signed-in user is in the /admins whitelist. */

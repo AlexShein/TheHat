@@ -247,3 +247,17 @@ Replaced Svelte `setContext`/`getContext` auth pattern with module-level `$state
 | Non-emulator tests (13/13)  | ✅                                     |
 
 New tests structurally correct — follow identical pattern to `room.test.ts` which passes when emulator running.
+
+---
+
+## Anonymous Auth (2026-05-01)
+
+Added Firebase anonymous sign-in so players can join via invitation link without Google auth. `+layout.svelte` triggers `signInAnonymously()` when no authenticated user is detected, storing the anonymous UID as the player identifier. Tests in `auth.test.ts` verify sign-in behavior and idempotency.
+
+---
+
+## Scoped Anonymous Sign-In + Test Race Fix (2026-05-01)
+
+Moved anonymous sign-in from global layout to room page only (`/room/[roomId]/+page.svelte` `onMount`) so landing page does not trigger competing anonymous credentials when admin already signed in with Google. Room page shows `authError` banner when anonymous sign-in fails. Fixed parallel test suite race in `auth.test.ts` `beforeAll` — `ensureEmailUser()` helper tries sign-in-first, creates only if user-not-found, making shared emulator user creation idempotent across concurrently running suites. All 41 tests pass, lint clean.
+
+(File has 255 lines total.)

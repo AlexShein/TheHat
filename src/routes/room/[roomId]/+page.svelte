@@ -1,9 +1,13 @@
 <script lang="ts">
+  import { onMount } from "svelte"
   import type { PageProps } from "./$types"
   import NameEntry from "$lib/components/phases/NameEntry.svelte"
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
   import { RoomStatus } from "$lib/db-types"
+  import { auth } from "$lib/firebase"
+  import { signInAnonymously } from "$lib/auth"
+  import { authStore } from "$lib/stores/auth.svelte"
 
   let { data }: PageProps = $props()
 
@@ -13,6 +17,17 @@
   let status = $derived(roomStore.status)
 
   let localPlayerId = $state<string | null>(null)
+  let authError = $state("")
+
+  // Ensure user is authenticated for room context. Anonymous sign-in
+  // only fires when no user present — admin/Google users skip it.
+  onMount(() => {
+    if (!authStore.currentUser) {
+      signInAnonymously(auth).catch((err: unknown) => {
+        authError = err instanceof Error ? err.message : "Authentication failed"
+      })
+    }
+  })
 
   $effect(() => {
     localPlayerId = data.playerId
@@ -30,6 +45,12 @@
 </script>
 
 <div class="mx-auto max-w-md px-4 pt-8">
+  {#if authError}
+    <div class="p-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm mb-4" role="alert">
+      {authError}
+    </div>
+  {/if}
+
   {#if !status}
     <!-- Loading: RTDB hasn't returned data yet -->
     <div class="flex justify-center mt-12" role="status" aria-label="Loading room">
