@@ -153,4 +153,38 @@ describe("joinRoomAsCurrentUser", () => {
     const snap = await adminDb.ref(`rooms/${roomId}/players/${PLAYER_UID_1}/connected`).once("value")
     expect(snap.val()).toBe(true)
   })
+
+  it("writes isAdmin:true for user in /admins whitelist", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 5, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    // ADMIN_UID is in /admins (set in beforeAll)
+    const playerDb = emulatorDb(ADMIN_UID)
+    await joinRoomAsCurrentUser(playerDb as unknown as Database, roomId, ADMIN_UID, "Admin Player")
+
+    const snap = await playerDb.ref(`rooms/${roomId}/players/${ADMIN_UID}`).once("value")
+    const player = snap.val() as Player
+    expect(player.isAdmin).toBe(true)
+  })
+
+  it("writes isAdmin:false for user not in /admins whitelist", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 5, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    // PLAYER_UID_1 is NOT in /admins whitelist
+    const playerDb = emulatorDb(PLAYER_UID_1)
+    await joinRoomAsCurrentUser(playerDb as unknown as Database, roomId, PLAYER_UID_1, "Regular Player")
+
+    const snap = await playerDb.ref(`rooms/${roomId}/players/${PLAYER_UID_1}`).once("value")
+    const player = snap.val() as Player
+    expect(player.isAdmin).toBe(false)
+  })
 })

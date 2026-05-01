@@ -57,7 +57,7 @@ describe("joinTeam", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })
@@ -76,7 +76,7 @@ describe("joinTeam", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })
@@ -96,7 +96,7 @@ describe("joinTeam", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })
@@ -121,7 +121,7 @@ describe("joinTeam", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })
@@ -141,7 +141,7 @@ describe("setReady", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })
@@ -161,7 +161,7 @@ describe("setReady", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })
@@ -182,7 +182,7 @@ describe("setReady", () => {
       ADMIN_UID,
     )
     const playerDb = emulatorDb(P1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, P1_UID, "Alice", "red", false)
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await advanceToLobby(ctx.database() as unknown as Database, roomId)
     })

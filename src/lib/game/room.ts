@@ -43,12 +43,13 @@ export async function joinRoom(
   playerId: string,
   name: string,
   color: string,
+  isAdmin: boolean,
 ): Promise<void> {
   const playerRef = ref(db, `rooms/${roomId}/players/${playerId}`)
   const existingSnap = await get(playerRef)
 
   if (existingSnap.exists()) {
-    // Reconnect: preserve name and color, just mark connected
+    // Reconnect: preserve name, color, and isAdmin, just mark connected
     await set(ref(db, `rooms/${roomId}/players/${playerId}/connected`), true)
     return
   }
@@ -60,7 +61,7 @@ export async function joinRoom(
     wordsSubmitted: false,
     ready: false,
     connected: true,
-    isAdmin: false,
+    isAdmin,
   })
 }
 
@@ -106,6 +107,10 @@ export async function joinRoomAsCurrentUser(
 
   const color = assignColor(usedColors)
 
-  await joinRoom(db, roomId, playerId, name, color)
+  // Check if this user is in the /admins whitelist
+  const adminSnap = await get(ref(db, `admins/${playerId}`))
+  const isAdmin = adminSnap.exists()
+
+  await joinRoom(db, roomId, playerId, name, color, isAdmin)
   await registerDisconnect(db, roomId, playerId)
 }

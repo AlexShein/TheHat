@@ -114,7 +114,7 @@ describe("createRoom", () => {
 })
 
 describe("joinRoom", () => {
-  it("writes player node with name, color, connected:true, wordsSubmitted:false, ready:false, teamId:null", async () => {
+  it("writes player node with name, color, connected:true, wordsSubmitted:false, ready:false, teamId:null, isAdmin:false", async () => {
     const adminDb = emulatorDb(ADMIN_UID)
     const roomId = await createRoom(
       adminDb as unknown as Database,
@@ -123,7 +123,7 @@ describe("joinRoom", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_UID_1)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_UID_1, "Test Player", "#ef4444")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_UID_1, "Test Player", "#ef4444", false)
 
     const snap = await playerDb.ref(`rooms/${roomId}/players/${PLAYER_UID_1}`).once("value")
     const player = snap.val()
@@ -133,6 +133,7 @@ describe("joinRoom", () => {
     expect(player.wordsSubmitted).toBe(false)
     expect(player.ready).toBe(false)
     expect(player.teamId).toBeUndefined()
+    expect(player.isAdmin).toBe(false)
   })
 
   it("two concurrent joinRoom() calls on same room assign different colors", async () => {
@@ -150,8 +151,8 @@ describe("joinRoom", () => {
     const usedAfter1 = new Set([color1])
     const color2 = assignColor(usedAfter1)
 
-    await joinRoom(db1 as unknown as Database, roomId, PLAYER_UID_1, "Player One", color1)
-    await joinRoom(db2 as unknown as Database, roomId, PLAYER_UID_2, "Player Two", color2)
+    await joinRoom(db1 as unknown as Database, roomId, PLAYER_UID_1, "Player One", color1, false)
+    await joinRoom(db2 as unknown as Database, roomId, PLAYER_UID_2, "Player Two", color2, false)
 
     const snap1 = await db1.ref(`rooms/${roomId}/players/${PLAYER_UID_1}`).once("value")
     const snap2 = await db1.ref(`rooms/${roomId}/players/${PLAYER_UID_2}`).once("value")
@@ -168,16 +169,18 @@ describe("joinRoom", () => {
     )
 
     const db1 = emulatorDb(PLAYER_UID_1)
-    await joinRoom(db1 as unknown as Database, roomId, PLAYER_UID_1, "Original Name", "#06b6d4")
+    await joinRoom(db1 as unknown as Database, roomId, PLAYER_UID_1, "Original Name", "#06b6d4", false)
 
     // Reconnect attempt
-    await joinRoom(db1 as unknown as Database, roomId, PLAYER_UID_1, "New Name", "#ef4444")
+    await joinRoom(db1 as unknown as Database, roomId, PLAYER_UID_1, "New Name", "#ef4444", true)
 
     const snap = await db1.ref(`rooms/${roomId}/players/${PLAYER_UID_1}`).once("value")
     const player = snap.val()
     expect(player.name).toBe("Original Name")
     expect(player.color).toBe("#06b6d4")
     expect(player.connected).toBe(true)
+    // Reconnect with different isAdmin value should NOT overwrite
+    expect(player.isAdmin).toBe(false)
   })
 })
 
