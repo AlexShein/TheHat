@@ -87,6 +87,7 @@ A real-time multiplayer web app for the party game "Hat" (Шляпа). Players a
   - Explainer decides: was it guessed? If yes, selects which team guessed it. That team gets the point.
   - **Explainer must explicitly press Skip** if no one guessed the word. It does not auto-return to hat.
 - If no word was active at expiry (hat was already empty): transition directly to next round. No post-expiry decision needed.
+- Word is only visible to the explainer. New explainer is only picked after the post-expiry dicision is made.
 
 ### Phase 9 — Post-Turn Screen
 
