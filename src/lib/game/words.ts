@@ -1,6 +1,6 @@
 import { ref, set, get, push } from "firebase/database"
 import type { Database } from "firebase/database"
-import type { Word } from "$lib/db-types"
+import type { Word, RoomConfig } from "$lib/db-types"
 
 /** Validation error thrown by addWord for client-side rejections */
 export class WordValidationError extends Error {
@@ -78,9 +78,29 @@ export async function getPlayerWords(
 
 /**
  * Advances room status from 'word-entry' to 'pre-start'.
- * Admin-only. Security rules enforce write permission on /rooms/{roomId}/status.
- * Non-admin call throws permission-denied.
+ * Creates team nodes matching config.numTeams. Admin-only write to
+ * /rooms/{roomId}/status and /rooms/{roomId}/teams — security rules
+ * enforce both. Non-admin call throws permission-denied.
  */
 export async function advanceToLobby(db: Database, roomId: string): Promise<void> {
+  const configSnap = await get(ref(db, `rooms/${roomId}/config`))
+  const config = configSnap.val() as RoomConfig | null
+  if (!config) throw new Error("Room config not found — cannot create teams")
+
+  // Create team nodes in parallel
+  const teamPromises: Promise<void>[] = []
+  for (let i = 1; i <= config.numTeams; i++) {
+    teamPromises.push(
+      set(ref(db, `rooms/${roomId}/teams/team-${i}`), {
+        name: `Team ${i}`,
+        playerOrder: [],
+        currentPlayerIndex: 0,
+        roundScores: { round1: 0, round2: 0, round3: 0 },
+      }),
+    )
+  }
+  await Promise.all(teamPromises)
+
+  // Set status last — observers react to status change, teams must exist first
   await set(ref(db, `rooms/${roomId}/status`), "pre-start")
 }

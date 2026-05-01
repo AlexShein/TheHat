@@ -63,7 +63,7 @@ describe("addWord", () => {
 
     // Join player
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "elephant")
 
@@ -86,7 +86,7 @@ describe("addWord", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     const id1 = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "cat")
     const id2 = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "dog")
@@ -103,7 +103,7 @@ describe("addWord", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     await expect(addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "")).rejects.toThrow(
       "Word cannot be empty",
@@ -119,7 +119,7 @@ describe("addWord", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     await expect(addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "   ")).rejects.toThrow(
       "Word cannot be empty",
@@ -135,7 +135,7 @@ describe("addWord", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     const longWord = "a".repeat(51)
     await expect(addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, longWord)).rejects.toThrow(
@@ -152,7 +152,7 @@ describe("addWord", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     const id1 = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "duplicate")
     const id2 = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "duplicate")
@@ -175,7 +175,7 @@ describe("submitWords", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     await submitWords(playerDb as unknown as Database, roomId, PLAYER_1_UID)
 
@@ -192,7 +192,7 @@ describe("submitWords", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     await submitWords(playerDb as unknown as Database, roomId, PLAYER_1_UID)
     // Second call should not throw
@@ -208,7 +208,7 @@ describe("submitWords", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     await submitWords(playerDb as unknown as Database, roomId, PLAYER_1_UID)
 
@@ -238,7 +238,7 @@ describe("getPlayerWords", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     const id1 = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "alpha")
     const id2 = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "beta")
@@ -260,7 +260,7 @@ describe("getPlayerWords", () => {
     )
 
     const playerDb = emulatorDb(PLAYER_1_UID)
-    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
 
     const words = await getPlayerWords(playerDb as unknown as Database, roomId, PLAYER_1_UID)
     expect(words).toEqual({})
@@ -276,8 +276,8 @@ describe("getPlayerWords", () => {
 
     const db1 = emulatorDb(PLAYER_1_UID)
     const db2 = emulatorDb(PLAYER_2_UID)
-    await joinRoom(db1 as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red")
-    await joinRoom(db2 as unknown as Database, roomId, PLAYER_2_UID, "Bob", "blue")
+    await joinRoom(db1 as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+    await joinRoom(db2 as unknown as Database, roomId, PLAYER_2_UID, "Bob", "blue", false)
 
     await addWord(db1 as unknown as Database, roomId, PLAYER_1_UID, "alice-word")
     await addWord(db2 as unknown as Database, roomId, PLAYER_2_UID, "bob-word")
@@ -290,7 +290,7 @@ describe("getPlayerWords", () => {
 })
 
 describe("advanceToLobby", () => {
-  it("writes status: 'pre-start' to room", async () => {
+  it("writes status: 'pre-start' and creates team nodes", async () => {
     const adminDb = emulatorDb(ADMIN_UID)
     const roomId = await createRoom(
       adminDb as unknown as Database,
@@ -298,10 +298,23 @@ describe("advanceToLobby", () => {
       ADMIN_UID,
     )
 
-    await advanceToLobby(adminDb as unknown as Database, roomId)
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await advanceToLobby(ctx.database() as unknown as Database, roomId)
+    })
 
-    const snap = await adminDb.ref(`rooms/${roomId}/status`).once("value")
-    expect(snap.val()).toBe("pre-start")
+    const statusSnap = await adminDb.ref(`rooms/${roomId}/status`).once("value")
+    expect(statusSnap.val()).toBe("pre-start")
+
+    // Verify team nodes created
+    const team1Snap = await adminDb.ref(`rooms/${roomId}/teams/team-1`).once("value")
+    const team2Snap = await adminDb.ref(`rooms/${roomId}/teams/team-2`).once("value")
+    expect(team1Snap.exists()).toBe(true)
+    expect(team2Snap.exists()).toBe(true)
+    expect(team1Snap.val().name).toBe("Team 1")
+    expect(team2Snap.val().name).toBe("Team 2")
+    expect(team1Snap.val().playerOrder).toBeUndefined()
+    expect(team1Snap.val().currentPlayerIndex).toBe(0)
+    expect(team1Snap.val().roundScores).toEqual({ round1: 0, round2: 0, round3: 0 })
   })
 
   it("called by non-admin throws permission-denied", async () => {

@@ -3,9 +3,10 @@
   import type { PageProps } from "./$types"
   import NameEntry from "$lib/components/phases/NameEntry.svelte"
   import WordEntry from "$lib/components/phases/WordEntry.svelte"
+  import Lobby from "$lib/components/phases/Lobby.svelte"
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
-  import { RoomStatus } from "$lib/db-types"
+  import { getRoomRoute } from "$lib/game/room-route"
   import { auth } from "$lib/firebase"
   import { signInAnonymously } from "$lib/auth"
   import { authStore } from "$lib/stores/auth.svelte"
@@ -15,10 +16,16 @@
   const roomStore = (() => createRoomStore(data.roomId))()
   const playersStore = (() => createPlayersStore(data.roomId))()
 
-  let status = $derived(roomStore.status)
-
   let localPlayerId = $state<string | null>(null)
   let authError = $state("")
+
+  let screen = $derived(
+    getRoomRoute(
+      roomStore.status,
+      localPlayerId !== null && playersStore.players[localPlayerId] !== undefined,
+      roomStore.config !== null,
+    ),
+  )
 
   // Ensure user is authenticated for room context. Anonymous sign-in
   // only fires when no user present — admin/Google users skip it.
@@ -52,34 +59,42 @@
     </div>
   {/if}
 
-  {#if !status}
-    <!-- Loading: RTDB hasn't returned data yet -->
+  {#if screen.kind === "loading"}
     <div class="flex justify-center mt-12" role="status" aria-label="Loading room">
       <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
     </div>
-  {:else if status === RoomStatus.WordEntry}
-    {#if localPlayerId && playersStore.players[localPlayerId]}
-      <!-- Player already joined, but word-entry phase -->
-      <WordEntry
-        roomId={data.roomId}
-        playerId={localPlayerId}
-        isAdmin={playersStore.players[localPlayerId]?.isAdmin ?? false}
-      />
-    {:else}
-      <NameEntry
-        roomId={data.roomId}
-        onjoined={(playerId) => {
-          localPlayerId = playerId
-        }}
-      />
-    {/if}
-  {:else if status === RoomStatus.PreStart}
-    <p class="text-center text-gray-600">Lobby — coming soon</p>
-  {:else if status === RoomStatus.Playing}
+  {:else if screen.kind === "name-entry"}
+    <NameEntry
+      roomId={data.roomId}
+      onjoined={(playerId) => {
+        localPlayerId = playerId
+      }}
+    />
+  {:else if screen.kind === "word-entry"}
+    <WordEntry
+      roomId={data.roomId}
+      playerId={localPlayerId!}
+      isAdmin={playersStore.players[localPlayerId!]?.isAdmin ?? false}
+    />
+  {:else if screen.kind === "lobby"}
+    <Lobby
+      roomId={data.roomId}
+      playerId={localPlayerId!}
+      isAdmin={playersStore.players[localPlayerId!]?.isAdmin ?? false}
+      bypassMinPlayers={import.meta.env.VITE_DEV_BYPASS_MIN_PLAYERS === "true"}
+      players={playersStore.players}
+      config={{ numTeams: roomStore.config!.numTeams }}
+      onstart={() => {
+        // TODO Phase 2.3: wire to initializeGameState()
+      }}
+    />
+  {:else if screen.kind === "playing"}
     <p class="text-center text-gray-600">Game — coming soon</p>
-  {:else if status === RoomStatus.Finished}
+  {:else if screen.kind === "finished"}
     <p class="text-center text-gray-600">Game Over — coming soon</p>
-  {:else}
-    <p class="text-center text-red-600">Unknown room state: {String(status)}</p>
+  {:else if screen.kind === "game-already-started"}
+    <p class="text-center text-gray-600">Game already started</p>
+  {:else if screen.kind === "unknown"}
+    <p class="text-center text-red-600">Unknown room state: {screen.raw}</p>
   {/if}
 </div>

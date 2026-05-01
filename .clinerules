@@ -11,3 +11,4 @@ Rules:
 - ALWAYS IGNORE `static/`, `build` and `node_modules/` DIRECTORIES. Current app build files are never relevant for any conversation we are having.
 - Before writing any code, state which principles from `docs/CONSTRAINTS.md` apply to this task and confirm you will not violate them.
 - Use the MCP tool to fetch context only when I specifically mention a module.
+- Always run tests with `npm run test` and linting with `npm run lint`
