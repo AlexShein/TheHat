@@ -111,3 +111,12 @@ Room creator (non-admin) could not write to `/teams/{teamId}`, `/status`, or `/g
 | `database.rules.json` | MODIFY — teams, status, gameState .write allow room creator |
 | `src/lib/rules.test.ts` | MODIFY — 5 new "room creator as room admin" tests |
 | `src/routes/+page.svelte` | MODIFY — removed console.log |
+
+---
+
+## Bugfix — Stuck "Loading lobby…" for Unjoined Players ✅
+
+User visiting `/room/{id}` after admin advanced to lobby saw permanent "Loading lobby…" because page's PreStart branch required `localPlayerId && playersStore.players[localPlayerId] && roomStore.config`, which was false for unjoined players. Extracted routing into pure function `getRoomRoute()` in `src/lib/game/room-route.ts` (100% coverage, 11 tests). Page now routes unjoined PreStart visitors to NameEntry instead of the dead-end else branch. Added `game-already-started` screen for unjoined visitors when status is playing/finished.
+| `src/lib/game/room-route.ts` | NEW — pure routing decision function |
+| `src/lib/game/room-route.test.ts` | NEW — 11 tests, all routing combinations |
+| `src/routes/room/[roomId]/+page.svelte` | REWRITE — delegates rendering to getRoomRoute() |
