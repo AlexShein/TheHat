@@ -4,11 +4,15 @@
   import { PlayerLimitError } from "$lib/colors"
   import { authStore } from "$lib/stores/auth.svelte"
   import { browser } from "$app/environment"
+  import { replaceState } from "$app/navigation"
+  import { resolve } from '$app/paths';
+  import { page } from '$app/state';
 
   interface Props {
     roomId: string
   }
 
+  const url = $derived(page.url);
   let { roomId }: Props = $props()
 
   let name = $state("")
@@ -41,11 +45,12 @@
       await joinRoomAsCurrentUser(db, roomId, playerId, trimmed)
 
       if (browser) {
-        const url = new URL(window.location.href)
-        url.searchParams.set("p", playerId)
-        history.replaceState({}, "", url.toString())
-      }
 
+        const newUrl = new URL(url);
+        newUrl.searchParams.set("p", playerId)
+        const path = `${newUrl.pathname}${newUrl.search}${newUrl.hash}`;
+        replaceState(resolve(path, {"p": playerId}), {})
+      }
       joined = true
     } catch (e: unknown) {
       if (e instanceof PlayerLimitError) {
