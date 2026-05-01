@@ -115,7 +115,7 @@
               style="background-color: {mate.color}"
               aria-label="{mate.name}"
               title="{mate.name}"
-            ></span>
+            ></span>{mate.name}
           {/each}
           {#if count === 0}
             <span class="text-sm text-gray-400 italic">No players yet</span>
