@@ -18,13 +18,15 @@
     bypassMinPlayers: boolean
     players: Record<string, Player>
     config: { numTeams: number }
-    onstart: () => void
+    onstart: () => Promise<void>
   } = $props()
 
   let teamError = $state("")
   let readyError = $state("")
+  let startError = $state("")
   let joiningTeam = $state(false)
   let togglingReady = $state(false)
+  let starting = $state(false)
 
   const currentPlayer = $derived(players[playerId])
   const selectedTeamId = $derived(currentPlayer?.teamId ?? null)
@@ -67,6 +69,18 @@
       readyError = e instanceof Error ? e.message : "Failed to toggle ready"
     } finally {
       togglingReady = false
+    }
+  }
+
+  async function handleStart() {
+    startError = ""
+    starting = true
+    try {
+      await onstart()
+    } catch (e) {
+      startError = e instanceof Error ? e.message : "Failed to start game"
+    } finally {
+      starting = false
     }
   }
 </script>
@@ -171,15 +185,26 @@
   {/if}
 
   <!-- Start Game button — admin only -->
+  {#if startError}
+    <div class="p-2 bg-red-50 border border-red-300 rounded text-red-700 text-sm mb-3" role="alert">
+      {startError}
+    </div>
+  {/if}
+
   {#if isAdmin}
     <button
       class="w-full py-3 min-h-[44px] bg-green-600 text-white font-bold rounded-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-      disabled={!readyCheck.allReady}
-      onclick={onstart}
+      disabled={!readyCheck.allReady || starting}
+      onclick={handleStart}
       aria-label="Start the game"
-      title={readyCheck.reason || "Start Game"}
+      aria-busy={starting}
+      title={starting ? "Starting game…" : (readyCheck.reason || "Start Game")}
     >
-      {readyCheck.allReady ? "Start Game" : readyCheck.reason}
+      {starting
+        ? "Starting game…"
+        : readyCheck.allReady
+          ? "Start Game"
+          : readyCheck.reason}
     </button>
   {/if}
 

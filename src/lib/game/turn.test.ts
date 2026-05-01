@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest"
 import { getDatabase, connectDatabaseEmulator, ref, set, get } from "firebase/database"
 import { initializeApp, deleteApp, type FirebaseApp } from "firebase/app"
+import { getAuth, connectAuthEmulator, signInAnonymously, signOut } from "firebase/auth"
 import { initializeGameState, InvalidPhaseTransitionError, MinPlayersError } from "./turn"
 
 const firebaseConfig = {
   projectId: "the-hat-dev",
+  apiKey: "fake-api-key",
   databaseURL: "http://127.0.0.1:9000?ns=the-hat-dev",
 }
 
 let app: FirebaseApp
+let adminUid: string
 let roomIdx = 0
 
 function makeDatabase(): ReturnType<typeof getDatabase> {
@@ -17,8 +20,19 @@ function makeDatabase(): ReturnType<typeof getDatabase> {
   return db
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   app = initializeApp(firebaseConfig)
+
+  // Sign in to main app and register as admin
+  const auth = getAuth(app)
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true })
+  const cred = await signInAnonymously(auth)
+  adminUid = cred.user.uid
+
+  // Seed /admins/{uid} so application-level admin check passes
+  const db = getDatabase(app)
+  connectDatabaseEmulator(db, "127.0.0.1", 9000)
+  await set(ref(db, `admins/${adminUid}`), true)
 })
 
 afterAll(async () => {
@@ -45,6 +59,12 @@ async function seedRoom(
     numTeams: nt,
     skipPenalty: false,
     timerDuration: 60,
+  })
+
+  await set(ref(db, `rooms/${roomId}/meta`), {
+    createdBy: adminUid,
+    createdAt: 0,
+    lastActiveAt: 0,
   })
 
   await set(ref(db, `rooms/${roomId}/status`), status)
@@ -89,7 +109,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { playerCount: 4, wordCount: 3 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -101,7 +121,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { playerCount: 3, wordCount: 2 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -124,7 +144,7 @@ describe("initializeGameState", () => {
       addedBy: "player-1",
     })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -140,7 +160,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { numTeams: 2 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
     const teams = teamsSnap.val()
@@ -154,7 +174,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { numTeams: 2 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
     const teams = teamsSnap.val()
@@ -174,7 +194,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { playerCount: 4, numTeams: 2 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
     const teams = teamsSnap.val()
@@ -191,7 +211,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId)
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -206,7 +226,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { numTeams: 2 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -218,7 +238,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { playerCount: 2, numTeams: 2 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -232,7 +252,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId)
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -246,7 +266,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { playerCount: 3 })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
@@ -264,7 +284,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId)
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const statusSnap = await get(ref(db, `rooms/${roomId}/status`))
     const gameSnap = await get(ref(db, `rooms/${roomId}/gameState`))
@@ -295,7 +315,7 @@ describe("initializeGameState", () => {
       addedBy: "player-1",
     })
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const statusSnap = await get(ref(db, `rooms/${roomId}/status`))
     expect(statusSnap.val()).toBe("playing")
@@ -306,7 +326,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { playerCount: 1, numTeams: 2 })
 
-    await expect(initializeGameState(db, roomId, false)).rejects.toThrow(MinPlayersError)
+    await expect(initializeGameState(db, roomId, adminUid, false)).rejects.toThrow(MinPlayersError)
   })
 
   it("MinPlayersError includes teamId and count", async () => {
@@ -315,7 +335,7 @@ describe("initializeGameState", () => {
     await seedRoom(db, roomId, { playerCount: 1, numTeams: 2 })
 
     try {
-      await initializeGameState(db, roomId, false)
+      await initializeGameState(db, roomId, adminUid, false)
       expect.fail("should have thrown")
     } catch (e) {
       expect(e).toBeInstanceOf(MinPlayersError)
@@ -332,7 +352,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { status: "word-entry" })
 
-    await expect(initializeGameState(db, roomId, true)).rejects.toThrow(InvalidPhaseTransitionError)
+    await expect(initializeGameState(db, roomId, adminUid, true)).rejects.toThrow(InvalidPhaseTransitionError)
   })
 
   it("throws InvalidPhaseTransitionError when status is 'playing' (idempotency)", async () => {
@@ -340,7 +360,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { status: "playing" })
 
-    await expect(initializeGameState(db, roomId, true)).rejects.toThrow(InvalidPhaseTransitionError)
+    await expect(initializeGameState(db, roomId, adminUid, true)).rejects.toThrow(InvalidPhaseTransitionError)
   })
 
   it("throws InvalidPhaseTransitionError when status is 'finished'", async () => {
@@ -348,7 +368,7 @@ describe("initializeGameState", () => {
     const roomId = `test-${Date.now()}-${roomIdx++}`
     await seedRoom(db, roomId, { status: "finished" })
 
-    await expect(initializeGameState(db, roomId, true)).rejects.toThrow(InvalidPhaseTransitionError)
+    await expect(initializeGameState(db, roomId, adminUid, true)).rejects.toThrow(InvalidPhaseTransitionError)
   })
 
   // ── Edge cases ────────────────────────────────────────────
@@ -356,6 +376,11 @@ describe("initializeGameState", () => {
   it("throws when no players exist in room", async () => {
     const db = makeDatabase()
     const roomId = `test-${Date.now()}-${roomIdx++}`
+    await set(ref(db, `rooms/${roomId}/meta`), {
+      createdBy: adminUid,
+      createdAt: 0,
+      lastActiveAt: 0,
+    })
     await set(ref(db, `rooms/${roomId}/config`), {
       wordCount: 3,
       numTeams: 2,
@@ -364,7 +389,7 @@ describe("initializeGameState", () => {
     })
     await set(ref(db, `rooms/${roomId}/status`), "pre-start")
 
-    await expect(initializeGameState(db, roomId, true)).rejects.toThrow("No players")
+    await expect(initializeGameState(db, roomId, adminUid, true)).rejects.toThrow("No players")
   })
 
   it("throws when no words exist in room", async () => {
@@ -374,7 +399,7 @@ describe("initializeGameState", () => {
     // Remove all words
     await set(ref(db, `rooms/${roomId}/words`), null)
 
-    await expect(initializeGameState(db, roomId, true)).rejects.toThrow("No words")
+    await expect(initializeGameState(db, roomId, adminUid, true)).rejects.toThrow("No words")
   })
 
   it("player with teamId=null: excluded from teams", async () => {
@@ -384,11 +409,80 @@ describe("initializeGameState", () => {
     // Unassign one player
     await set(ref(db, `rooms/${roomId}/players/player-2/teamId`), null)
 
-    await initializeGameState(db, roomId, true)
+    await initializeGameState(db, roomId, adminUid, true)
 
     const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
     const teams = teamsSnap.val()
     const allOrdered = [...teams["team-1"].playerOrder, ...teams["team-2"].playerOrder]
     expect(allOrdered).not.toContain("player-2")
+  })
+
+  it("playerStats excludes unassigned players (teamId=null)", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+    await seedRoom(db, roomId, { playerCount: 3, numTeams: 2 })
+    // Unassign one player
+    await set(ref(db, `rooms/${roomId}/players/player-2/teamId`), null)
+
+    await initializeGameState(db, roomId, adminUid, true)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    // player-2 had teamId=null — should not appear in playerStats
+    expect(gs.playerStats["player-2"]).toBeUndefined()
+    // assigned players still present
+    expect(gs.playerStats["player-0"]).toEqual({ wordsExplained: 0 })
+    expect(gs.playerStats["player-1"]).toEqual({ wordsExplained: 0 })
+  })
+
+  // ── Permission ─────────────────────────────────────────────
+
+  it("called by non-admin client throws permission-denied", async () => {
+    // Create a separate FirebaseApp for the non-admin user
+    const nonAdminApp = initializeApp(
+      {
+        projectId: "the-hat-dev",
+        apiKey: "fake-api-key-nonadmin",
+        databaseURL: "http://127.0.0.1:9000?ns=the-hat-dev",
+      },
+      `non-admin-${Date.now()}`,
+    )
+    const nonAdminDb = getDatabase(nonAdminApp)
+    connectDatabaseEmulator(nonAdminDb, "127.0.0.1", 9000)
+    const nonAdminAuth = getAuth(nonAdminApp)
+    connectAuthEmulator(nonAdminAuth, "http://127.0.0.1:9099", { disableWarnings: true })
+
+    // Sign in as non-admin (not on /admins whitelist for this separate app)
+    const cred = await signInAnonymously(nonAdminAuth)
+    const nonAdminUid = cred.user.uid
+
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+    // Seed room with admin-app so room exists
+    const db = makeDatabase()
+    await seedRoom(db, roomId)
+
+    // Use non-admin uid — should fail application-level check
+    await expect(initializeGameState(nonAdminDb, roomId, nonAdminUid, true)).rejects.toThrow(/permission/i)
+
+    await signOut(nonAdminAuth)
+    await deleteApp(nonAdminApp)
+  })
+
+  it("player who submitted 0 words: their wordIds not in hat", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+    await seedRoom(db, roomId, { playerCount: 3, wordCount: 2 })
+    // Remove all words submitted by player-1
+    await set(ref(db, `rooms/${roomId}/words/player-1-word-0`), null)
+    await set(ref(db, `rooms/${roomId}/words/player-1-word-1`), null)
+
+    await initializeGameState(db, roomId, adminUid, true)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    // player-0 and player-2 each had 2 words → 4 total
+    expect(gs.hat).toHaveLength(4)
+    expect(gs.hat).not.toContain("player-1-word-0")
+    expect(gs.hat).not.toContain("player-1-word-1")
   })
 })

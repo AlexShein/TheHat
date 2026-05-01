@@ -7,9 +7,10 @@
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
   import { getRoomRoute } from "$lib/game/room-route"
-  import { auth } from "$lib/firebase"
+  import { auth, db } from "$lib/firebase"
   import { signInAnonymously } from "$lib/auth"
   import { authStore } from "$lib/stores/auth.svelte"
+  import { initializeGameState } from "$lib/game/turn"
 
   let { data }: PageProps = $props()
 
@@ -84,8 +85,15 @@
       bypassMinPlayers={import.meta.env.VITE_DEV_BYPASS_MIN_PLAYERS === "true"}
       players={playersStore.players}
       config={{ numTeams: roomStore.config!.numTeams }}
-      onstart={() => {
-        // TODO Phase 2.3: wire to initializeGameState()
+      onstart={async () => {
+        const uid = authStore.currentUser?.uid
+        if (!uid) throw new Error("Not authenticated")
+        await initializeGameState(
+          db,
+          data.roomId,
+          uid,
+          import.meta.env.VITE_DEV_BYPASS_MIN_PLAYERS === "true",
+        )
       }}
     />
   {:else if screen.kind === "playing"}

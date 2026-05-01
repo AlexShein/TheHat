@@ -2,9 +2,6 @@ import { get, ref, set } from "firebase/database"
 import type { Database } from "firebase/database"
 import type { GameState, Team, RoomConfig, Player, PlayerStats } from "$lib/db-types"
 
-type ROUND = "round1" | "round2" | "round3"
-const ROUNDS: ROUND[] = ["round1", "round2", "round3"]
-
 /** Error thrown when status transition is invalid */
 export class InvalidPhaseTransitionError extends Error {
   constructor(public currentStatus: string) {
@@ -29,8 +26,8 @@ function shuffle<T>(arr: T[]): T[] {
   const result: T[] = [...arr]
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    const a = result[i] as T
-    const b = result[j] as T
+    const a = result[i]!
+    const b = result[j]!
     result[i] = b
     result[j] = a
   }
@@ -39,21 +36,34 @@ function shuffle<T>(arr: T[]): T[] {
 
 /**
  * Initializes game state and transitions room from pre-start → playing.
- * Must be called by admin (required by security rules).
+ * Must be called by admin or room creator.
  *
  * Reads all players and all words from RTDB. Writes teams, gameState, then status.
  * Status is written LAST — all clients see the full gameState atomically.
  *
  * @param db - Firebase RTDB instance
  * @param roomId - Room identifier
+ * @param callerUid - auth uid of caller, used to verify admin/creator status
  * @param bypassMinPlayers - when true, skips the ≥2-players-per-team check
  */
 export async function initializeGameState(
   db: Database,
   roomId: string,
+  callerUid: string,
   bypassMinPlayers: boolean,
 ): Promise<void> {
-  // 1. Guard: only allow transition from "pre-start"
+  // 1. Verify caller is admin or room creator (application-level check)
+  const [adminSnap, creatorSnap] = await Promise.all([
+    get(ref(db, `admins/${callerUid}`)),
+    get(ref(db, `rooms/${roomId}/meta/createdBy`)),
+  ])
+  const isAdmin = adminSnap.exists()
+  const isCreator = creatorSnap.val() === callerUid
+  if (!isAdmin && !isCreator) {
+    throw new Error("Permission denied: caller is not admin or room creator")
+  }
+
+  // 2. Guard: only allow transition from "pre-start"
   const statusSnap = await get(ref(db, `rooms/${roomId}/status`))
   const currentStatus = statusSnap.val() as string | null
 
@@ -61,7 +71,7 @@ export async function initializeGameState(
     throw new InvalidPhaseTransitionError(currentStatus ?? "unknown")
   }
 
-  // 2. Read config, players, words in parallel
+  // 3. Read config, players, words in parallel
   const [configSnap, playersSnap, wordsSnap] = await Promise.all([
     get(ref(db, `rooms/${roomId}/config`)),
     get(ref(db, `rooms/${roomId}/players`)),
@@ -73,11 +83,11 @@ export async function initializeGameState(
 
   const players = (playersSnap.val() as Record<string, Player> | null) ?? {}
 
-  // 3. Validate players exist
+  // 4. Validate players exist
   const playerIds = Object.keys(players)
   if (playerIds.length === 0) throw new Error("No players in room")
 
-  // 4. Read word IDs from words node
+  // 5. Read word IDs from words node
   const wordsRaw = wordsSnap.val() as Record<string, unknown> | null
   const wordIds = Object.keys(wordsRaw ?? {})
   if (wordIds.length === 0) throw new Error("No words in room")
@@ -124,10 +134,6 @@ export async function initializeGameState(
         round3: 0,
       },
     }
-    // Initialize round scores for rounds 1-3
-    for (const r of ROUNDS) {
-      teams[tid]!.roundScores[r] = 0
-    }
   }
 
   // 9. Determine first team and first explainer
@@ -136,9 +142,10 @@ export async function initializeGameState(
   const firstExplainerId = teams[firstTeamId]?.playerOrder[0]
   if (!firstExplainerId) throw new Error("No players in first team")
 
-  // 10. Build per-player stats (all start at 0)
+  // 10. Build per-player stats for assigned players only (all start at 0)
+  const assignedPlayerIds = Object.values(teams).flatMap((t) => t.playerOrder)
   const playerStats: Record<string, PlayerStats> = {}
-  for (const pid of playerIds) {
+  for (const pid of assignedPlayerIds) {
     playerStats[pid] = { wordsExplained: 0 }
   }
 
@@ -162,6 +169,6 @@ export async function initializeGameState(
   await set(ref(db, `rooms/${roomId}/teams`), teams)
   await set(ref(db, `rooms/${roomId}/gameState`), gameState)
 
-  // 13. Write status LAST — atomic to all observers, gate on all prior writes
+  // 14. Write status LAST — atomic to all observers, gate on all prior writes
   await set(ref(db, `rooms/${roomId}/status`), "playing")
 }
