@@ -125,7 +125,8 @@ User visiting `/room/{id}` after admin advanced to lobby saw permanent "Loading 
 
 ## Phase 2.3 — Game Initialization & Start Trigger ✅
 
-`initializeGameState()` builds hat, teams, gameState, and transitions `status` from `pre-start` → `playing`. 21 tests pass, 99% coverage. Lint pass, all lint rules satisfied. Lobby "Start Game" button wires to `initializeGameState()`, with error toast on failure and loading spinner during async call.
+`initializeGameState()` builds hat, teams, gameState, and transitions `status` from `pre-start` → `playing`. 24 tests pass, 99% coverage. Lint pass, all lint rules satisfied. Lobby "Start Game" button wires to `initializeGameState()`, with error toast on failure and loading spinner during async call. Fixes: auth-admin race resolved with application-level admin check using callerUid and `DataSnapshot`+type guard; RTDB null-stripping handled (undefined expected, not null).
 | `src/lib/game/turn.ts` | NEW — initializeGameState, shuffle, error classes |
-| `src/lib/game/turn.test.ts` | NEW — 21 tests (hat, teams, guards, edges, bypass) |
+| `src/lib/game/turn.test.ts` | NEW — 24 tests (hat, teams, guards, edges, bypass, permissions) |
 | `src/lib/components/phases/Lobby.svelte` | MODIFY — Start Game button async call, loading/error state |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire initializeGameState with callerUid from authStore |
