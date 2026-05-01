@@ -1,8 +1,8 @@
 <script lang="ts">
   import { db } from "$lib/firebase"
-  import { joinRoom, registerDisconnect } from "$lib/game/room"
-  import { assignColor, PlayerLimitError } from "$lib/colors"
-  import { createPlayersStore } from "$lib/stores/players.svelte"
+  import { joinRoomAsCurrentUser } from "$lib/game/room"
+  import { PlayerLimitError } from "$lib/colors"
+  import { authStore } from "$lib/stores/auth.svelte"
   import { browser } from "$app/environment"
 
   interface Props {
@@ -18,15 +18,6 @@
 
   const MIN_NAME_LENGTH = 2
 
-  function generatePlayerId(): string {
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-    let id = ""
-    for (let i = 0; i < 12; i++) {
-      id += chars[Math.floor(Math.random() * chars.length)]
-    }
-    return id
-  }
-
   async function handleSubmit(e: Event) {
     e.preventDefault()
     error = ""
@@ -37,22 +28,18 @@
       return
     }
 
+    const user = authStore.currentUser
+    if (!user) {
+      error = "Sign in required to join"
+      return
+    }
+
     joining = true
 
     try {
-      // Get used colors from existing players
-      const playersStore = createPlayersStore(roomId)
-      const usedColors = new Set<string>(
-        Object.values(playersStore.players).map((p) => (p as { color: string }).color),
-      )
+      const playerId = user.uid
+      await joinRoomAsCurrentUser(db, roomId, playerId, trimmed)
 
-      const color = assignColor(usedColors)
-      const playerId = generatePlayerId()
-
-      await joinRoom(db, roomId, playerId, trimmed, color)
-      await registerDisconnect(db, roomId, playerId)
-
-      // Write playerId to URL
       if (browser) {
         const url = new URL(window.location.href)
         url.searchParams.set("p", playerId)
@@ -60,7 +47,6 @@
       }
 
       joined = true
-      playersStore.destroy()
     } catch (e: unknown) {
       if (e instanceof PlayerLimitError) {
         error = "Room is full — all player slots taken"
