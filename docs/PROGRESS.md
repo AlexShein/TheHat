@@ -114,6 +114,11 @@ Room creator (non-admin) could not write to `/teams/{teamId}`, `/status`, or `/g
 
 ---
 
+## Bugfix — PERMISSION_DENIED on `/teams` When Starting Game ✅
+
+`initializeGameState()` writes whole `teams` object at once (`set(ref(db, rooms/${roomId}/teams), teams)`). Security rules had `.write` only at `teams/$teamId` capture level — no rule matched the parent `teams` path. RTDB applied DENY. Fix: add `.write` at `teams` level, same condition as `$teamId` (admin or room creator).
+| `database.rules.json` | MODIFY — add `.write` at `teams` parent level |
+
 ## Bugfix — Stuck "Loading lobby…" for Unjoined Players ✅
 
 User visiting `/room/{id}` after admin advanced to lobby saw permanent "Loading lobby…" because page's PreStart branch required `localPlayerId && playersStore.players[localPlayerId] && roomStore.config`, which was false for unjoined players. Extracted routing into pure function `getRoomRoute()` in `src/lib/game/room-route.ts` (100% coverage, 11 tests). Page now routes unjoined PreStart visitors to NameEntry instead of the dead-end else branch. Added `game-already-started` screen for unjoined visitors when status is playing/finished.
