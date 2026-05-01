@@ -27,7 +27,7 @@
 | `src/lib/db-types.ts`       | All RTDB type interfaces                                    |
 | `src/lib/firebase.test.ts`  | Firebase connection tests (2)                               |
 | `src/lib/rules.test.ts`     | Security rules tests (5)                                    |
-| `.github/workflows/ci.yml`  | CI: lint, typecheck, test:ci, build                         |
+| `.github/workflows/ci.yml`  | CI: lint, typecheck, test, build                            |
 | `eslint.config.js`          | ESLint flat config + Svelte plugin                          |
 | `vitest.config.ts`          | Vitest + coverage config                                    |
 
@@ -37,7 +37,7 @@
 | ---------------------------- | ------ |
 | npm run lint (0 warnings)    | ✅     |
 | npm run typecheck (0 errors) | ✅     |
-| npm run test:ci (7/7 tests)  | ✅     |
+| npm run test (7/7 tests)     | ✅     |
 | npm run build                | ✅     |
 
 ### Manual Steps Remaining
@@ -84,17 +84,17 @@ Implemented all pure-logic modules for auth, color assignment, RTDB stores, and 
 | `src/lib/colors.test.ts`            | NEW    | 5 tests for color assignment                                 |
 | `src/lib/game/room.test.ts`         | NEW    | 8 tests for room lifecycle                                   |
 | `firebase.json`                     | MODIFY | Added `auth` emulator on port 9099                           |
-| `package.json`                      | MODIFY | Added `dev:bootstrap` and `test:ci:auth` scripts             |
+| `package.json`                      | MODIFY | Added `dev:bootstrap` script                                 |
 | `eslint.config.js`                  | MODIFY | Disabled `no-console` for scripts directory                  |
 | `tailwind.config.ts`                | MODIFY | Replaced `require()` with ESM import                         |
 
 ### Test Results
 
-| Check                        | Status |
-| ---------------------------- | ------ |
-| npm run lint (0 warnings)    | ✅     |
-| npm run test:ci:auth (28/28) | ✅     |
-| room.ts coverage (100%)      | ✅     |
+| Check                     | Status |
+| ------------------------- | ------ |
+| npm run lint (0 warnings) | ✅     |
+| npm run test (28/28)      | ✅     |
+| room.ts coverage (100%)   | ✅     |
 
 ### AC Items Satisfied
 
@@ -110,7 +110,7 @@ Implemented all pure-logic modules for auth, color assignment, RTDB stores, and 
 - [x] `onDisconnect` registered before `connected` set to true
 - [x] Route loader returns `roomId` from route param, `playerId` from `?p=` query
 - [x] `npm run lint` exits 0
-- [x] `npm run test:ci:auth` passes all Phase 1.1 tests
+- [x] `npm run test` passes all Phase 1.1 tests
 
 ### Manual Steps Required
 
@@ -187,3 +187,22 @@ Built all Phase 1 Svelte components with Svelte 5 runes, Tailwind styling, and s
 
 1. **NameEntry: race condition on color assignment.** Reading `playersStore.players` then calling `assignColor()` has a TOCTOU window. Mitigated by single-writer constraint (one player joining at a time) but not fully eliminated. Future: use transaction to atomically reserve a color slot.
 2. **`+page.svelte` URL polling for playerId.** `history.replaceState` does not trigger SvelteKit re-render, so the phase switcher uses `popstate` listener to detect when `NameEntry` writes `?p=` to URL. This works but is not idiomatic SvelteKit. Future: use `goto()` with `replaceState` and `invalidateAll()`.
+
+---
+
+## Bugfix: Sign-In State Not Reactive After Auth
+
+### Status: Complete ✅
+
+### Summary
+
+Replaced Svelte `setContext`/`getContext` auth pattern with module-level `$state` in `src/lib/stores/auth.svelte.ts`. Layout writes `authStore.setUser()` in `onAuthStateChanged` callback; page reads `authStore.currentUser` directly in template — Svelte 5 tracks `$state` getter access properly across component boundaries, fixing stale closure from one-time destructuring. Six new store unit tests added. Lint and full test suite (34/34) pass clean.
+
+### Files Created/Modified
+
+| File                            | Action | Purpose                                                    |
+| ------------------------------- | ------ | ---------------------------------------------------------- |
+| `src/lib/stores/auth.svelte.ts` | NEW    | Module-level `$state` for `currentUser` + `loading`        |
+| `src/lib/stores/auth.test.ts`   | NEW    | 6 tests for auth store reactivity                          |
+| `src/routes/+layout.svelte`     | MODIFY | Uses `authStore.setUser()` instead of `setContext()`       |
+| `src/routes/+page.svelte`       | MODIFY | Uses `authStore.currentUser` instead of `getAuthContext()` |

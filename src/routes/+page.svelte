@@ -1,14 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation"
   import { auth, db } from "$lib/firebase"
-  import { getAuthContext } from "$lib/context"
+  import { authStore } from "$lib/stores/auth.svelte"
   import { signInWithGoogle, signInDevEmail, signOut, isAdmin } from "$lib/auth"
   import RoomCreation from "$lib/components/phases/RoomCreation.svelte"
   import RoomCreated from "$lib/components/phases/RoomCreated.svelte"
 
   const isEmulator = import.meta.env.VITE_USE_EMULATOR === "true"
-
-  const { currentUser } = getAuthContext()
 
   let isUserAdmin = $state(false)
   let adminCheckDone = $state(false)
@@ -26,7 +24,7 @@
 
   // isAdmin check: runs only when auth settles and user is signed in
   $effect(() => {
-    const user = currentUser
+    const user = authStore.currentUser
     if (!user) {
       isUserAdmin = false
       adminCheckDone = true
@@ -101,7 +99,7 @@
 
   // Show loading spinner inherited from layout? No — layout already handles loading.
   // But isAdmin check is async, so adminCheckDone gates the full UI.
-  let showAdminSpinner = $derived(currentUser && !adminCheckDone)
+  let showAdminSpinner = $derived(authStore.currentUser && !adminCheckDone)
 </script>
 
 <div class="mx-auto max-w-md px-4 pt-16">
@@ -125,10 +123,10 @@
     />
   {:else}
     <div class="mt-8 space-y-6">
-      {#if currentUser}
+      {#if authStore.currentUser}
         <!-- Signed in -->
         <p class="text-center text-sm text-gray-600">
-          Signed in as <span class="font-medium">{currentUser.displayName ?? currentUser.email ?? "Unknown"}</span>
+          Signed in as <span class="font-medium">{authStore.currentUser.displayName ?? authStore.currentUser.email ?? "Unknown"}</span>
         </p>
         <button
           class="block mx-auto text-sm text-red-600 underline min-h-[44px]"

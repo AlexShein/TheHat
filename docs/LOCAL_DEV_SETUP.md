@@ -30,6 +30,7 @@ firebase init emulators
 ```
 
 Copy `.env.example` to `.env.local`:
+
 ```bash
 cp .env.example .env.local
 # Fill in values from Firebase Console → Project Settings → Your Apps
@@ -55,12 +56,12 @@ When `VITE_USE_EMULATOR=true` is set (it is, in `.env.local`), the app automatic
 
 ## Emulator Ports
 
-| Service | Port |
-|---|---|
+| Service           | Port |
+| ----------------- | ---- |
 | Realtime Database | 9000 |
-| Functions | 5001 |
-| Hosting | 5000 |
-| Emulator UI | 4000 |
+| Functions         | 5001 |
+| Hosting           | 5000 |
+| Emulator UI       | 4000 |
 
 Access Emulator UI at `http://localhost:4000` — use this to inspect RTDB state during development.
 
@@ -69,6 +70,7 @@ Access Emulator UI at `http://localhost:4000` — use this to inspect RTDB state
 ## Environment Variables
 
 **`.env.example`** (commit this):
+
 ```
 VITE_FIREBASE_API_KEY=
 VITE_FIREBASE_AUTH_DOMAIN=
@@ -79,6 +81,7 @@ VITE_USE_EMULATOR=true
 ```
 
 **`.env.local`** (never commit — gitignored):
+
 - Contains real values
 - `VITE_USE_EMULATOR=true` for local dev
 - Set `VITE_USE_EMULATOR=false` only when testing against live Firebase intentionally
@@ -89,17 +92,19 @@ VITE_USE_EMULATOR=true
 
 ```typescript
 // src/lib/firebase.ts
-import { initializeApp } from 'firebase/app';
-import { getDatabase, connectDatabaseEmulator } from 'firebase/database';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { initializeApp } from "firebase/app"
+import { getDatabase, connectDatabaseEmulator } from "firebase/database"
+import { getAuth, connectAuthEmulator } from "firebase/auth"
 
-const app = initializeApp({ /* env vars */ });
-export const db = getDatabase(app);
-export const auth = getAuth(app);
+const app = initializeApp({
+  /* env vars */
+})
+export const db = getDatabase(app)
+export const auth = getAuth(app)
 
-if (import.meta.env.VITE_USE_EMULATOR === 'true') {
-  connectDatabaseEmulator(db, 'localhost', 9000);
-  connectAuthEmulator(auth, 'http://localhost:9099');
+if (import.meta.env.VITE_USE_EMULATOR === "true") {
+  connectDatabaseEmulator(db, "localhost", 9000)
+  connectAuthEmulator(auth, "http://localhost:9099")
 }
 ```
 
@@ -111,11 +116,7 @@ if (import.meta.env.VITE_USE_EMULATOR === 'true') {
 
 ```bash
 # Unit tests (requires emulators running)
-npm run emulators &   # start in background
-npm test              # Vitest with coverage
-
-# Or in one command (emulators:exec handles lifecycle)
-npm run test:ci       # firebase emulators:exec --only database "vitest run"
+npm run test       # firebase emulators:exec --only database "vitest run"
 
 # Security rules tests
 npm run test:rules
@@ -128,8 +129,7 @@ npm run test:rules
   "emulators": "firebase emulators:start --only database,functions",
   "dev": "vite dev",
   "build": "vite build",
-  "test": "vitest run --coverage",
-  "test:ci": "firebase emulators:exec --only database 'vitest run --coverage'",
+  "test": "firebase emulators:exec --only database 'vitest run --coverage'",
   "test:rules": "firebase emulators:exec --only database 'vitest run src/lib/rules.test.ts'",
   "test:watch": "vitest",
   "lint": "eslint . --max-warnings 0",
@@ -151,6 +151,7 @@ npx ts-node scripts/seed-emulator.ts
 Create `scripts/seed-emulator.ts` with a full room in `playing` status. This lets you jump directly to any game phase without clicking through the setup flow every time.
 
 **Seed states to implement (in priority order):**
+
 1. Room in `explaining` phase, mid-turn, 5 words in hat
 2. Room at timer expiry (`post_expiry` phase)
 3. Room at round 2, `waiting_start`

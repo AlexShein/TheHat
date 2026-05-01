@@ -44,8 +44,7 @@ eslint.config.js
     "emulators": "firebase emulators:start --only database,functions",
     "dev:full": "concurrently \"npm run emulators\" \"npm run dev\"",
     "dev:solo:full": "concurrently \"npm run emulators\" \"npm run dev:solo\"",
-    "test": "vitest run --coverage",
-    "test:ci": "firebase emulators:exec --only database 'vitest run --coverage'",
+    "test": "firebase emulators:exec --only database 'vitest run --coverage'",
     "test:rules": "firebase emulators:exec --only database 'vitest run src/lib/rules.test.ts'",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
@@ -70,7 +69,7 @@ src/lib/firebase.test.ts:
 
 ### Acceptance Criteria
 
-- [ ] `npm run test:ci` passes with zero failures
+- [ ] `npm run test` passes with zero failures
 - [ ] `npm run lint` exits 0
 - [ ] `npm run typecheck` exits 0 with strict mode
 - [ ] `npm run dev:solo:full` starts without errors; app is reachable at localhost:5173

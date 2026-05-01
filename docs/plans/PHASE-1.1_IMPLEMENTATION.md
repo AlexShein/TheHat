@@ -28,7 +28,7 @@ None. This phase produces no visible UI.
 - [ ] `joinRoom()` writes player node with `name`, `color`, `connected:true`, `wordsSubmitted:false`, `ready:false`, `teamId:null`
 - [ ] `onDisconnect` is registered **before** `connected` is set to `true`
 - [ ] Route loader returns `roomId` from route param and `playerId` from `?p=` query param
-- [ ] `npm run test:ci` passes all Phase 1.1 tests
+- [ ] `npm run test` passes all Phase 1.1 tests
 - [ ] `npm run lint -- --max-warnings 0` exits 0
 - [ ] `npm run typecheck` exits 0
 
