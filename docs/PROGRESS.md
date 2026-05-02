@@ -174,10 +174,21 @@ Created observer-side UI shell: `GameMain.svelte` routes by phase, `TeamScore.sv
 
 Files: `src/lib/components/phases/GameMain.svelte`, `src/lib/components/shared/TeamScore.svelte`, `src/lib/components/phases/PostTurn.svelte`, `src/lib/db-types.ts`, `src/lib/stores/teams.svelte.ts`, `src/lib/game/scoring.ts`, `src/lib/game/hat.ts`, `src/routes/room/[roomId]/+page.svelte`.
 
-### Phase 3.4 — Turn Orchestration & Timer Expiry Handler
+### Phase 3.4 — Turn Orchestration & Timer Expiry Handler ✅
 
-Status: NOT STARTED. Plan: `docs/plans/PHASE-3.4_IMPLEMENTATION.md`.
+Split `turn.ts` into `turn-advance.ts` (advanceTurn: round-robin team/player cycling, hat-empty detection) and `turn-expiry.ts` (handleTimerExpiry: word-displayed duration check → post_expiry/post_turn; endTurnEarly: hat-empty shortcut). 21 new tests pass (10 advance + 11 expiry), 165 total suite passes, lint clean, coverage 100% on both new files.
+| `src/lib/game/turn-advance.ts`, `src/lib/game/turn-advance.test.ts` | NEW — advanceTurn (10 tests) |
+| `src/lib/game/turn-expiry.ts`, `src/lib/game/turn-expiry.test.ts` | NEW — handleTimerExpiry, endTurnEarly (11 tests) |
 
 ### Phase 3.5 — ExplainerView
 
 Status: NOT STARTED. Plan: `docs/plans/PHASE-3.5_IMPLEMENTATION.md`.
+
+---
+
+## Phase 3.4 Bug Fixes & Improvements ✅
+
+Fixed stale read-modify-write in `advanceTurn()` (now uses atomic `update()` instead of separate `set()` calls). Added `endRound()` function (`turn-round.ts`) handling round refill and game-finish transition. Extended `handleTimerExpiry()` to detect hat-empty → `round_end`. Added phase guards to `endTurnEarly()` (no-op outside `explaining`). 172 tests pass, lint clean.
+| `src/lib/game/turn-advance.ts` | MODIFY — atomic update() |
+| `src/lib/game/turn-round.ts`, `src/lib/game/turn-round.test.ts` | NEW — endRound (5 tests) |
+| `src/lib/game/turn-expiry.ts`, `src/lib/game/turn-expiry.test.ts` | MODIFY — hat-empty→round_end, endTurnEarly phase guard (13 tests) |
