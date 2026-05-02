@@ -127,7 +127,7 @@ describe("handleTimerExpiry", () => {
     expect(gs.phase).toBe("post_turn")
   })
 
-  it("when timeRemaining<=0, currentWordId is null: writes phase='post_turn'", async () => {
+  it("when timeRemaining<=0, currentWordId is null AND hat not empty: writes phase='post_turn'", async () => {
     const db = makeDatabase()
     const roomId = `test-${Date.now()}-${roomIdx++}`
 
@@ -136,6 +136,7 @@ describe("handleTimerExpiry", () => {
       timerStartedAt: sixtyOneSecAgo,
       timerDuration: 60000,
       currentWordId: null,
+      hat: ["word-1", "word-2"], // hat has words remaining
     })
 
     await handleTimerExpiry(
@@ -152,7 +153,26 @@ describe("handleTimerExpiry", () => {
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
     expect(gs.phase).toBe("post_turn")
-    // RTDB removes explicit null values
+    expect(gs.currentWordId).toBeFalsy()
+  })
+
+  it("when timeRemaining<=0, currentWordId is null AND hat empty: writes phase='round_end'", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    const sixtyOneSecAgo = Date.now() - 61000
+    await seedGameState(db, roomId, {
+      timerStartedAt: sixtyOneSecAgo,
+      timerDuration: 60000,
+      currentWordId: null,
+      hat: [], // empty hat — round should end
+    })
+
+    await handleTimerExpiry(db, roomId, sixtyOneSecAgo, 60000, null, null, null, null)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    expect(gs.phase).toBe("round_end")
     expect(gs.currentWordId).toBeFalsy()
   })
 
@@ -286,6 +306,24 @@ describe("endTurnEarly", () => {
     expect(gs.round).toBe(1)
     expect(gs.currentTeamId).toBe("team-1")
     expect(gs.wordsGuessedThisTurn).toBe(2)
+  })
+
+  it("when phase is not 'explaining': does nothing (no-op)", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    await seedGameState(db, roomId, {
+      phase: "post_turn", // not explaining
+      currentWordId: "word-1",
+    })
+
+    await endTurnEarly(db, roomId)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    // Phase unchanged — guard blocked the write
+    expect(gs.phase).toBe("post_turn")
+    expect(gs.currentWordId).toBe("word-1") // unchanged
   })
 
   it("when gameState does not exist: does nothing (no-op)", async () => {

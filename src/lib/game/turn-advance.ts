@@ -1,4 +1,4 @@
-import { ref, get, set } from "firebase/database"
+import { ref, get, set, update } from "firebase/database"
 import type { Database } from "firebase/database"
 import type { GameState, Team } from "$lib/db-types"
 
@@ -25,8 +25,7 @@ export async function advanceTurn(db: Database, roomId: string): Promise<void> {
 
   // Hat empty → round_end, do NOT advance turn order (AC 5)
   if (hat.length === 0) {
-    await set(ref(db, `rooms/${roomId}/gameState`), {
-      ...gs,
+    await update(ref(db, `rooms/${roomId}/gameState`), {
       phase: "round_end",
       currentWordId: null,
       lastAction: null,
@@ -79,9 +78,8 @@ export async function advanceTurn(db: Database, roomId: string): Promise<void> {
   }
   await set(ref(db, `rooms/${roomId}/teams/${nextTeamId}/currentPlayerIndex`), newIndex)
 
-  // Write gameState
-  await set(ref(db, `rooms/${roomId}/gameState`), {
-    ...gs,
+  // Write gameState — use update() for targeted writes, avoids stale ...gs spread
+  await update(ref(db, `rooms/${roomId}/gameState`), {
     phase: "waiting_start",
     currentTeamId: nextTeamId,
     currentExplainerId: nextExplainerId,

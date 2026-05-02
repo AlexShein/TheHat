@@ -183,3 +183,12 @@ Split `turn.ts` into `turn-advance.ts` (advanceTurn: round-robin team/player cyc
 ### Phase 3.5 — ExplainerView
 
 Status: NOT STARTED. Plan: `docs/plans/PHASE-3.5_IMPLEMENTATION.md`.
+
+---
+
+## Phase 3.4 Bug Fixes & Improvements ✅
+
+Fixed stale read-modify-write in `advanceTurn()` (now uses atomic `update()` instead of separate `set()` calls). Added `endRound()` function (`turn-round.ts`) handling round refill and game-finish transition. Extended `handleTimerExpiry()` to detect hat-empty → `round_end`. Added phase guards to `endTurnEarly()` (no-op outside `explaining`). 172 tests pass, lint clean.
+| `src/lib/game/turn-advance.ts` | MODIFY — atomic update() |
+| `src/lib/game/turn-round.ts`, `src/lib/game/turn-round.test.ts` | NEW — endRound (5 tests) |
+| `src/lib/game/turn-expiry.ts`, `src/lib/game/turn-expiry.test.ts` | MODIFY — hat-empty→round_end, endTurnEarly phase guard (13 tests) |
