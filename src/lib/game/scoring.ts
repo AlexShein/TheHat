@@ -80,10 +80,11 @@ export async function undoLastAction(
     throw new UndoNotAvailableError()
   }
 
-  // Compute new hat — restore lastAction.wordId always.
-  // Restore currentWordId only for guessed (both words were consumed).
+  // Compute new hat — restore both lastAction.wordId and currentWordId.
+  // On skip-undo: currentWordId is the word drawn post-skip (must not be lost).
+  // On guess-undo: currentWordId is the word being explained (must return).
   const hat: string[] = [...(gs.hat ?? [])]
-  if (action.type === "guessed" && gs.currentWordId !== null && !hat.includes(gs.currentWordId)) {
+  if (gs.currentWordId !== null && !hat.includes(gs.currentWordId)) {
     hat.push(gs.currentWordId)
   }
   if (action.wordId !== null && !hat.includes(action.wordId)) {
