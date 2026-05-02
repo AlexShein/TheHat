@@ -118,19 +118,23 @@
   {:else if screen.kind === "playing"}
     {#if gameStateStore && teamsStore && localPlayerId}
       <GameMain
+        roomId={data.roomId}
         playerId={localPlayerId}
         phase={gameStateStore.phase}
         round={gameStateStore.round}
         currentExplainerId={gameStateStore.currentExplainerId}
         currentTeamId={gameStateStore.currentTeamId}
+        currentWordId={gameStateStore.currentWordId}
+        currentWordText={gameStateStore.currentWordText}
+        lastAction={gameStateStore.lastAction}
         timerStartedAt={gameStateStore.timerStartedAt}
         timerDuration={gameStateStore.timerDuration}
         pausedAt={gameStateStore.pausedAt}
         timeRemainingAtPause={gameStateStore.timeRemainingAtPause}
-        currentWordText={gameStateStore.currentWordText}
         wordsGuessedThisTurn={gameStateStore.wordsGuessedThisTurn}
         teams={teamsStore.teams}
         players={playersStore.players}
+        config={{ skipPenalty: roomStore.config?.skipPenalty ?? false, timerDuration: gameStateStore.timerDuration }}
       />
     {:else}
       <div class="flex justify-center mt-12" role="status" aria-label="Loading game">

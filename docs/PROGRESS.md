@@ -180,9 +180,14 @@ Split `turn.ts` into `turn-advance.ts` (advanceTurn: round-robin team/player cyc
 | `src/lib/game/turn-advance.ts`, `src/lib/game/turn-advance.test.ts` | NEW — advanceTurn (10 tests) |
 | `src/lib/game/turn-expiry.ts`, `src/lib/game/turn-expiry.test.ts` | NEW — handleTimerExpiry, endTurnEarly (11 tests) |
 
-### Phase 3.5 — ExplainerView
+### Phase 3.5 — ExplainerView ✅
 
-Status: NOT STARTED. Plan: `docs/plans/PHASE-3.5_IMPLEMENTATION.md`.
+ExplainerView component with Start/Guessed/Skip/Undo buttons and post-expiry team selector. `word-display.ts` tracks word display time locally for 2s Skip lockout. `turn-start.ts` handles Start button Firebase writes. GameMain updated to route ExplainerView for explainer phases. 5 new tests pass, lint clean.
+| `src/lib/components/phases/ExplainerView.svelte` | NEW — explainer controls (3 modes, thin controller) |
+| `src/lib/game/word-display.ts`, `src/lib/game/word-display.test.ts` | NEW — getWordDisplayedAt (5 tests) |
+| `src/lib/game/turn-start.ts` | NEW — startTurn with serverTimestamp |
+| `src/lib/components/phases/GameMain.svelte` | MODIFY — delegates to ExplainerView, passes new props |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — passes roomId, currentWordId, lastAction, config to GameMain |
 
 ---
 
