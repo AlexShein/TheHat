@@ -168,9 +168,11 @@ Hat mutations (`drawWord`, `returnWord`) via `runTransaction()` with atomicity a
 | `src/lib/game/scoring.ts` | NEW — awardPoint, applyPenalty, undoLastAction |
 | `src/lib/game/scoring.test.ts` | NEW — 12 tests |
 
-### Phase 3.3 — GameMain Shell, TeamScore & PostTurn
+### Phase 3.3 — GameMain Shell, TeamScore & PostTurn ✅
 
-Status: NOT STARTED. Plan: `docs/plans/PHASE-3.3_IMPLEMENTATION.md`.
+Created observer-side UI shell: `GameMain.svelte` routes by phase, `TeamScore.svelte` shows team scores, `PostTurn.svelte` shows words-guessed count. Extended `db-types.ts` with `wordsGuessedThisTurn` and `currentWordText` fields, wired `awardPoint()` and `drawWord()` to write them. Wired stores into `+page.svelte` with cleanup guards. 14/14 test files pass (144 tests), lint clean.
+
+Files: `src/lib/components/phases/GameMain.svelte`, `src/lib/components/shared/TeamScore.svelte`, `src/lib/components/phases/PostTurn.svelte`, `src/lib/db-types.ts`, `src/lib/stores/teams.svelte.ts`, `src/lib/game/scoring.ts`, `src/lib/game/hat.ts`, `src/routes/room/[roomId]/+page.svelte`.
 
 ### Phase 3.4 — Turn Orchestration & Timer Expiry Handler
 

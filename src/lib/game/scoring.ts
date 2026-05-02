@@ -1,6 +1,7 @@
 import { ref, set, get } from "firebase/database"
 import type { Database } from "firebase/database"
 import type { GameState, LastAction } from "$lib/db-types"
+import { incrementWordsGuessedThisTurn } from "./turn"
 
 export class UndoNotAvailableError extends Error {
   constructor() {
@@ -31,6 +32,7 @@ export async function awardPoint(
   await Promise.all([
     set(ref(db, scorePath), currentScore + 1),
     set(ref(db, statsPath), currentExplained + 1),
+    incrementWordsGuessedThisTurn(db, roomId),
   ])
 }
 

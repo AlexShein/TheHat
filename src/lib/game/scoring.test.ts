@@ -3,6 +3,7 @@ import { getDatabase, connectDatabaseEmulator, ref, set, get } from "firebase/da
 import { initializeApp, deleteApp, type FirebaseApp } from "firebase/app"
 import { getAuth, connectAuthEmulator, signInAnonymously } from "firebase/auth"
 import { awardPoint, applyPenalty, undoLastAction, UndoNotAvailableError } from "./scoring"
+import { incrementWordsGuessedThisTurn } from "./turn"
 import type { PlayerStats, LastAction } from "$lib/db-types"
 
 const firebaseConfig = {
@@ -119,6 +120,18 @@ describe("awardPoint", () => {
       const key = `round${r}`
       expect(scores[key]).toBeGreaterThan(0)
     }
+  })
+
+  it("increments wordsGuessedThisTurn by 1 (Phase 3.3 PostTurn display)", async () => {
+    const db = makeDatabase()
+    const roomId = `scoring-${Date.now()}-${idx++}`
+    await seedFullGameState(db, roomId, { wordsGuessedThisTurn: 2 })
+
+    await incrementWordsGuessedThisTurn(db, roomId)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    expect(gs.wordsGuessedThisTurn).toBe(3) // 2 + 1
   })
 })
 
