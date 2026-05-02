@@ -80,7 +80,7 @@
     displayedAt: null,
   })
 
-  let prevWordId = $state<string | null>(null)
+  let prevWordId: string | null = null // plain let — NOT $state. Writing it must not re-trigger $effect
   let timerExpiryError = $state("")
 
   $effect(() => {
@@ -93,6 +93,7 @@
     // Reset on phase exit
     return () => {
       wordDisplayed = { id: null, displayedAt: null }
+      prevWordId = null
     }
   })
 

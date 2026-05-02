@@ -45,7 +45,7 @@
 
   // Local state
   let wordDisplayedAt = $state<number | null>(null)
-  let prevWordId = $state<string | null>(null)
+  let prevWordId: string | null = null // plain let — NOT $state. Writing it must not re-trigger $effect
   let postExpirySelectedTeam = $state<string | null>(null)
   let errorMessage = $state("")
   let cooldownRemaining = $state<number>(0)
