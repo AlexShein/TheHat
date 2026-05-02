@@ -220,3 +220,13 @@ All sub-phase plans: `docs/plans/PHASE-4.{1,2}_IMPLEMENTATION.md`.
 RoundEnd component renders when `phase === 'round_end'` — shows cumulative team scores, admin "Next Round" (round < 3) or "See Results" (round === 3) button, non-admin waiting message. No new logic — delegates to existing `endRound()` from `turn-round.ts`. All 182 tests pass, lint clean.
 | `src/lib/components/phases/RoundEnd.svelte` | NEW — round intermission UI |
 | `src/lib/components/phases/GameMain.svelte` | MODIFY — replace stub, add isAdmin prop |
+
+---
+
+## Phase 4.2 — Scoreboard & Game Restart ✅
+
+Scoreboard renders on `status === 'finished'` with team totals (sum of 3 roundScores), per-player wordsExplained table, admin-only Restart button. `restartGame()` removes gameState + words nodes, resets player `wordsSubmitted`/`ready`, preserves team assignments and playerOrder, transitions status to `'word-entry'`. 9 restartGame tests + Scoreboard component + wiring in `+page.svelte`. All 192 tests pass, lint clean.
+| `src/lib/game/turn-round.ts` | MODIFY — add restartGame() |
+| `src/lib/game/turn-round.test.ts` | MODIFY — 9 restart tests |
+| `src/lib/components/phases/Scoreboard.svelte` | NEW — final scoreboard UI |
+| `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire Scoreboard, keep stores alive during finished status |

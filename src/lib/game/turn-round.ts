@@ -1,6 +1,6 @@
-import { ref, get, set, update } from "firebase/database"
+import { ref, get, set, update, remove } from "firebase/database"
 import type { Database } from "firebase/database"
-import type { GameState } from "$lib/db-types"
+import type { GameState, Player } from "$lib/db-types"
 
 /**
  * Fisher-Yates shuffle. Returns new array, does not mutate input.
@@ -66,4 +66,44 @@ export async function endRound(db: Database, roomId: string): Promise<void> {
     lastAction: null,
     wordsGuessedThisTurn: 0,
   })
+}
+
+/**
+ * Restarts game after finishing. Only acts when status === 'finished'
+ * and gameState exists (guard prevents double-click).
+ *
+ * Actions:
+ *  1. Reads all players, resets their wordsSubmitted + ready to false
+ *     while preserving teamId, name, color, connected, isAdmin.
+ *  2. Removes gameState node (scores frozen, Scoreboard already shown).
+ *  3. Removes all words nodes (new word-entry phase).
+ *  4. Sets status → 'word-entry'.
+ *  5. Leaves teams node intact (playerOrder, currentPlayerIndex preserved).
+ *  6. Leaves players node intact (just fields reset).
+ */
+export async function restartGame(db: Database, roomId: string): Promise<void> {
+  const statusSnap = await get(ref(db, `rooms/${roomId}/status`))
+  if (!statusSnap.exists() || statusSnap.val() !== "finished") return
+
+  const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+  if (!gsSnap.exists()) return
+
+  // Reset each player's wordsSubmitted and ready, preserve everything else
+  const playersSnap = await get(ref(db, `rooms/${roomId}/players`))
+  if (playersSnap.exists()) {
+    const players = playersSnap.val() as Record<string, Player>
+    for (const pid of Object.keys(players)) {
+      await update(ref(db, `rooms/${roomId}/players/${pid}`), {
+        wordsSubmitted: false,
+        ready: false,
+      })
+    }
+  }
+
+  // Remove game state and words
+  await remove(ref(db, `rooms/${roomId}/gameState`))
+  await remove(ref(db, `rooms/${roomId}/words`))
+
+  // Transition back to word-entry
+  await set(ref(db, `rooms/${roomId}/status`), "word-entry")
 }
