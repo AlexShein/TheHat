@@ -260,9 +260,9 @@
         {pausedAt}
         {timeRemainingAtPause}
       />
-      {#if currentWordText}
+      <!-- {#if currentWordText}
         <p class="mt-3 text-xl font-semibold text-gray-800">The word was: <span class="text-blue-700">{currentWordText}</span></p>
-      {/if}
+      {/if} -->
     </div>
   {/if}
 {:else if phase === "post_turn"}
