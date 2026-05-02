@@ -81,6 +81,28 @@ describe("handleTimerExpiry", () => {
     const snap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = snap.val()
     expect(gs.phase).toBe("post_expiry")
+    expect(gs.currentWordId).toBe("word-1") // preserved for post_expiry decision
+  })
+
+  it("when timeRemaining<=0, currentWordId set but wordDisplayedAt lost: conservatively goes to post_expiry", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    const sixtyOneSecAgo = Date.now() - 61000
+    await seedGameState(db, roomId, {
+      timerStartedAt: sixtyOneSecAgo,
+      timerDuration: 60000,
+      currentWordId: "word-last",
+    })
+
+    // wordDisplayedAt lost (bug: client effect reset it to null)
+    await handleTimerExpiry(db, roomId, sixtyOneSecAgo, 60000, null, null, "word-last", null)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    // Must preserve word for explainer to decide — go to post_expiry, not post_turn
+    expect(gs.phase).toBe("post_expiry")
+    expect(gs.currentWordId).toBe("word-last")
   })
 
   it("when timeRemaining<=0, wordDisplayed <=2s: writes phase='post_turn', currentWordId=null", async () => {

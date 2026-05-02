@@ -40,21 +40,27 @@ export async function handleTimerExpiry(
   if (remaining > 0) return
 
   // Timer expired — decide phase
-  if (currentWordId !== null && wordDisplayedAt !== null && Date.now() - wordDisplayedAt > 2000) {
-    // Word displayed >2s — give explainer chance to act (post_expiry)
-    await set(ref(db, `rooms/${roomId}/gameState/phase`), "post_expiry")
+  if (currentWordId !== null) {
+    // Word exists — determine if explainer gets post_expiry or not
+    if (wordDisplayedAt !== null && Date.now() - wordDisplayedAt <= 2000) {
+      // Word displayed ≤2s — too fresh, skip to post_turn
+      await update(ref(db, `rooms/${roomId}/gameState`), {
+        phase: "post_turn",
+        currentWordId: null,
+      })
+    } else {
+      // Word displayed >2s OR wordDisplayedAt lost (conservative: preserve word)
+      await set(ref(db, `rooms/${roomId}/gameState/phase`), "post_expiry")
+    }
   } else {
-    // Word not displayed long enough or no word drawn
-    // Check hat emptiness: if hat empty, go directly to round_end
+    // No word drawn — check hat emptiness
     const hat = gs.hat ?? []
-    if (hat.length === 0 && currentWordId === null) {
-      // Hat was already empty — round is over
+    if (hat.length === 0) {
       await update(ref(db, `rooms/${roomId}/gameState`), {
         phase: "round_end",
         currentWordId: null,
       })
     } else {
-      // Normal post_turn — use update() to avoid clobbering concurrent field writes
       await update(ref(db, `rooms/${roomId}/gameState`), {
         phase: "post_turn",
         currentWordId: null,

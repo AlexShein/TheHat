@@ -5,6 +5,7 @@
   import WordEntry from "$lib/components/phases/WordEntry.svelte"
   import Lobby from "$lib/components/phases/Lobby.svelte"
   import GameMain from "$lib/components/phases/GameMain.svelte"
+  import Scoreboard from "$lib/components/phases/Scoreboard.svelte"
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
   import { createGameStateStore } from "$lib/stores/gameState.svelte"
@@ -28,7 +29,7 @@
 
   // Lazily create/destroy playing-phase stores when status transitions
   $effect(() => {
-    if (roomStore.status === "playing") {
+    if (roomStore.status === "playing" || roomStore.status === "finished") {
       gameStateStore = createGameStateStore(data.roomId)
       teamsStore = createTeamsStore(data.roomId)
     } else {
@@ -115,6 +116,22 @@
         )
       }}
     />
+    {:else if screen.kind === "finished"}
+    {#if gameStateStore && teamsStore && localPlayerId}
+      <Scoreboard
+        {db}
+        roomId={data.roomId}
+        playerId={localPlayerId}
+        round={gameStateStore.round}
+        teams={teamsStore.teams}
+        players={playersStore.players}
+        playerStats={gameStateStore.playerStats}
+      />
+    {:else}
+      <div class="flex justify-center mt-12" role="status" aria-label="Loading">
+        <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      </div>
+    {/if}
   {:else if screen.kind === "playing"}
     {#if gameStateStore && teamsStore && localPlayerId}
       <GameMain
@@ -143,8 +160,6 @@
         <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
       </div>
     {/if}
-  {:else if screen.kind === "finished"}
-    <p class="text-center text-gray-600">Game Over — coming soon</p>
   {:else if screen.kind === "game-already-started"}
     <p class="text-center text-gray-600">Game already started</p>
   {:else if screen.kind === "unknown"}
