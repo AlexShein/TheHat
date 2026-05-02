@@ -212,3 +212,11 @@ Phase 4 scope: 2 components + restartGame logic. `endRound()` already exists fro
 | 4.2       | Scoreboard component + restartGame(), wiring | 4     | Phase 4.1 (status transitions) |
 
 All sub-phase plans: `docs/plans/PHASE-4.{1,2}_IMPLEMENTATION.md`.
+
+---
+
+## Phase 4.1 — RoundEnd Component & Round Transition ✅
+
+RoundEnd component renders when `phase === 'round_end'` — shows cumulative team scores, admin "Next Round" (round < 3) or "See Results" (round === 3) button, non-admin waiting message. No new logic — delegates to existing `endRound()` from `turn-round.ts`. All 182 tests pass, lint clean.
+| `src/lib/components/phases/RoundEnd.svelte` | NEW — round intermission UI |
+| `src/lib/components/phases/GameMain.svelte` | MODIFY — replace stub, add isAdmin prop |

@@ -3,6 +3,7 @@
   import TeamScore from "$lib/components/shared/TeamScore.svelte"
   import PostTurn from "$lib/components/phases/PostTurn.svelte"
   import ExplainerView from "$lib/components/phases/ExplainerView.svelte"
+  import RoundEnd from "$lib/components/phases/RoundEnd.svelte"
   import type { Database } from "firebase/database"
   import type { Team, Player, GameState } from "$lib/db-types"
 
@@ -174,8 +175,12 @@
     nextTeamName={teams[currentTeamId]?.name ?? "Unknown"}
   />
 {:else if phase === "round_end"}
-  <div class="text-center p-6">
-    <p class="text-xl font-semibold text-gray-700">Round End</p>
-    <p class="text-sm text-gray-500">Phase 4 — Scoreboard coming soon</p>
-  </div>
+  <RoundEnd
+    {db}
+    {roomId}
+    {playerId}
+    {round}
+    {teams}
+    {players}
+  />
 {/if}
