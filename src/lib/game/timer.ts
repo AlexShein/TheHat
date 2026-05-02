@@ -13,7 +13,7 @@ export function getTimeRemaining(
   pausedAt: number | null,
   timeRemainingAtPause: number | null,
 ): number {
-  const timerDurationMs = timerDuration * 1000
+  const timerDurationMs = timerDuration * 1000 // Convert to milliseconds
   // Timer not started yet — return full duration
   if (timerStartedAt === null) {
     return timerDurationMs
