@@ -1,10 +1,11 @@
-import { ref, runTransaction } from "firebase/database"
+import { ref, runTransaction, get } from "firebase/database"
 import type { Database } from "firebase/database"
-import type { GameState } from "$lib/db-types"
+import type { GameState, Word } from "$lib/db-types"
 
 /**
  * Atomically removes one random wordId from gameState.hat via runTransaction.
- * Writes drawn wordId to gameState.currentWordId in same transaction.
+ * Writes drawn wordId to gameState.currentWordId and fetches word text
+ * from /words/{wordId} to write gameState.currentWordText in same transaction.
  * Returns the drawn wordId, or null if hat was empty.
  * Must be called only by currentExplainerId's client.
  */
@@ -27,13 +28,42 @@ export async function drawWord(db: Database, roomId: string): Promise<string | n
       ...gs,
       hat: newHat,
       currentWordId: drawn,
+      // currentWordText resolved after transaction via separate get()
     }
   })
 
   if (!result.committed) return null
 
   const gs = result.snapshot.val() as GameState | null
-  return gs?.currentWordId ?? null
+  const wordId = gs?.currentWordId ?? null
+
+  // Fetch word text and write currentWordText separately.
+  // Transaction already wrote currentWordId atomically — text is a non-critical
+  // derived field safe to write after. Observers see it in post_expiry.
+  if (wordId !== null) {
+    try {
+      const wordSnap = await get(ref(db, `rooms/${roomId}/words/${wordId}`))
+      const word = wordSnap.val() as Word | null
+      const wordText = word?.text ?? null
+
+      // Write currentWordText via another transaction to avoid race with concurrent reads
+      await runTransaction(gsRef, (current) => {
+        if (current === null) return null
+        const gs2 = current as GameState
+        return { ...gs2, currentWordText: wordText }
+      })
+    } catch {
+      // Word node doesn't exist — leave currentWordText as null.
+      // Already null from initialization, but ensure consistency.
+      void runTransaction(gsRef, (current) => {
+        if (current === null) return null
+        const gs2 = current as GameState
+        return { ...gs2, currentWordText: null }
+      })
+    }
+  }
+
+  return wordId
 }
 
 /**

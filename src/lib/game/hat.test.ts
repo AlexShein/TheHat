@@ -3,6 +3,7 @@ import { getDatabase, connectDatabaseEmulator, ref, set, get } from "firebase/da
 import { initializeApp, deleteApp, type FirebaseApp } from "firebase/app"
 import { getAuth, connectAuthEmulator, signInAnonymously } from "firebase/auth"
 import { drawWord, returnWord } from "./hat"
+import type { Word } from "$lib/db-types"
 
 const firebaseConfig = {
   projectId: "the-hat-dev",
@@ -33,6 +34,16 @@ beforeAll(async () => {
 afterAll(async () => {
   await deleteApp(app)
 })
+
+async function seedWord(
+  db: ReturnType<typeof getDatabase>,
+  roomId: string,
+  wordId: string,
+  text: string,
+): Promise<void> {
+  const w: Word = { text, addedBy: "player-0" }
+  await set(ref(db, `rooms/${roomId}/words/${wordId}`), w)
+}
 
 async function seedGameState(
   db: ReturnType<typeof getDatabase>,
@@ -144,7 +155,34 @@ describe("drawWord", () => {
     const drawn = await drawWord(db, roomId)
 
     expect(drawn).toBe("last-word")
-    // RTDB state verification skipped — emulator snap.val() edge case
+  })
+
+  it("writes currentWordText from /words/{wordId} (Phase 3.3 obs)", async () => {
+    const db = makeDatabase()
+    const roomId = `hat-test-${Date.now()}-${idx++}`
+    await seedGameState(db, roomId, ["w-alpha"])
+    await seedWord(db, roomId, "w-alpha", "elephant")
+
+    const drawn = await drawWord(db, roomId)
+
+    expect(drawn).toBe("w-alpha")
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    expect(gs.currentWordText).toBe("elephant")
+  })
+
+  it("currentWordText null when word node missing", async () => {
+    const db = makeDatabase()
+    const roomId = `hat-test-${Date.now()}-${idx++}`
+    await seedGameState(db, roomId, ["ghost-word"])
+
+    const drawn = await drawWord(db, roomId)
+
+    expect(drawn).toBe("ghost-word")
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    // Firebase RTDB deletes keys set to null — field will be undefined
+    expect(gs.currentWordText).toBeUndefined()
   })
 })
 

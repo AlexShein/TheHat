@@ -59,6 +59,8 @@ export interface GameState {
   phase: "waiting_start" | "explaining" | "post_expiry" | "post_turn" | "round_end"
   hat: string[]
   currentWordId: string | null
+  currentWordText: string | null // written at draw time, read by observers + explainer
+  wordsGuessedThisTurn: number // reset to 0 on each new turn, incremented on Guessed
   lastAction: LastAction | null
   playerStats: Record<string, PlayerStats>
 }

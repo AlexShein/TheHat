@@ -4,8 +4,11 @@
   import NameEntry from "$lib/components/phases/NameEntry.svelte"
   import WordEntry from "$lib/components/phases/WordEntry.svelte"
   import Lobby from "$lib/components/phases/Lobby.svelte"
+  import GameMain from "$lib/components/phases/GameMain.svelte"
   import { createRoomStore } from "$lib/stores/room.svelte"
   import { createPlayersStore } from "$lib/stores/players.svelte"
+  import { createGameStateStore } from "$lib/stores/gameState.svelte"
+  import { createTeamsStore } from "$lib/stores/teams.svelte"
   import { getRoomRoute } from "$lib/game/room-route"
   import { auth, db } from "$lib/firebase"
   import { signInAnonymously } from "$lib/auth"
@@ -19,6 +22,22 @@
 
   let localPlayerId = $state<string | null>(null)
   let authError = $state("")
+
+  let gameStateStore = $state<ReturnType<typeof createGameStateStore> | null>(null)
+  let teamsStore = $state<ReturnType<typeof createTeamsStore> | null>(null)
+
+  // Lazily create/destroy playing-phase stores when status transitions
+  $effect(() => {
+    if (roomStore.status === "playing") {
+      gameStateStore = createGameStateStore(data.roomId)
+      teamsStore = createTeamsStore(data.roomId)
+    } else {
+      gameStateStore?.destroy()
+      gameStateStore = null
+      teamsStore?.destroy()
+      teamsStore = null
+    }
+  })
 
   let screen = $derived(
     getRoomRoute(
@@ -97,7 +116,27 @@
       }}
     />
   {:else if screen.kind === "playing"}
-    <p class="text-center text-gray-600">Game — coming soon</p>
+    {#if gameStateStore && teamsStore && localPlayerId}
+      <GameMain
+        playerId={localPlayerId}
+        phase={gameStateStore.phase}
+        round={gameStateStore.round}
+        currentExplainerId={gameStateStore.currentExplainerId}
+        currentTeamId={gameStateStore.currentTeamId}
+        timerStartedAt={gameStateStore.timerStartedAt}
+        timerDuration={gameStateStore.timerDuration}
+        pausedAt={gameStateStore.pausedAt}
+        timeRemainingAtPause={gameStateStore.timeRemainingAtPause}
+        currentWordText={gameStateStore.currentWordText}
+        wordsGuessedThisTurn={gameStateStore.wordsGuessedThisTurn}
+        teams={teamsStore.teams}
+        players={playersStore.players}
+      />
+    {:else}
+      <div class="flex justify-center mt-12" role="status" aria-label="Loading game">
+        <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      </div>
+    {/if}
   {:else if screen.kind === "finished"}
     <p class="text-center text-gray-600">Game Over — coming soon</p>
   {:else if screen.kind === "game-already-started"}

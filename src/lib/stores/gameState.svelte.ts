@@ -18,6 +18,8 @@ export function createGameStateStore(roomId: string) {
   let timerDuration = $state<number>(60_000)
   let hat = $state<string[]>([])
   let currentWordId = $state<string | null>(null)
+  let currentWordText = $state<string | null>(null)
+  let wordsGuessedThisTurn = $state<number>(0)
   let lastAction = $state<GameState["lastAction"]>(null)
   let playerStats = $state<GameState["playerStats"]>({})
   let pausedAt = $state<number | null>(null)
@@ -35,6 +37,8 @@ export function createGameStateStore(roomId: string) {
     timerDuration = gs.timerDuration
     hat = gs.hat
     currentWordId = gs.currentWordId
+    currentWordText = gs.currentWordText ?? null
+    wordsGuessedThisTurn = gs.wordsGuessedThisTurn ?? 0
     lastAction = gs.lastAction
     playerStats = gs.playerStats
     pausedAt = gs.pausedAt
@@ -65,6 +69,12 @@ export function createGameStateStore(roomId: string) {
     },
     get currentWordId() {
       return currentWordId
+    },
+    get currentWordText() {
+      return currentWordText
+    },
+    get wordsGuessedThisTurn() {
+      return wordsGuessedThisTurn
     },
     get lastAction() {
       return lastAction

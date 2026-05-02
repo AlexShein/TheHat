@@ -3,6 +3,7 @@ import { getDatabase, connectDatabaseEmulator, ref, set, get } from "firebase/da
 import { initializeApp, deleteApp, type FirebaseApp } from "firebase/app"
 import { getAuth, connectAuthEmulator, signInAnonymously } from "firebase/auth"
 import { awardPoint, applyPenalty, undoLastAction, UndoNotAvailableError } from "./scoring"
+import { incrementWordsGuessedThisTurn } from "./turn"
 import type { PlayerStats, LastAction } from "$lib/db-types"
 
 const firebaseConfig = {
@@ -120,6 +121,18 @@ describe("awardPoint", () => {
       expect(scores[key]).toBeGreaterThan(0)
     }
   })
+
+  it("increments wordsGuessedThisTurn by 1 (Phase 3.3 PostTurn display)", async () => {
+    const db = makeDatabase()
+    const roomId = `scoring-${Date.now()}-${idx++}`
+    await seedFullGameState(db, roomId, { wordsGuessedThisTurn: 2 })
+
+    await incrementWordsGuessedThisTurn(db, roomId)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    expect(gs.wordsGuessedThisTurn).toBe(3) // 2 + 1
+  })
 })
 
 describe("applyPenalty", () => {
@@ -234,11 +247,12 @@ describe("undoLastAction", () => {
     // currentWordId restored to skipped word
     expect(gs.currentWordId).toBe("w-skipped")
 
-    // w-skipped returned to hat, remaining words still there
+    // w-skipped returned to hat, currentWordId also restored (both words return)
     expect(gs.hat).toContain("w-skipped")
     expect(gs.hat).toContain("w-2")
     expect(gs.hat).toContain("w-3")
-    expect(gs.hat).toHaveLength(3)
+    expect(gs.hat).toContain("w-0")
+    expect(gs.hat).toHaveLength(4)
 
     // Penalty reversed: team score +1 back
     const scoreSnap = await get(ref(db, `rooms/${roomId}/teams/team-1/roundScores`))
@@ -265,6 +279,16 @@ describe("undoLastAction", () => {
     // Score unchanged
     const scoreSnap = await get(ref(db, `rooms/${roomId}/teams/team-1/roundScores`))
     expect(scoreSnap.val().round2).toBe(3) // unchanged
+
+    // Hat contains currentWordId restored + lastAction.wordId + remaining
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+    expect(gs.hat).toContain("w-no-penalty")
+    expect(gs.hat).toContain("w-x")
+    expect(gs.hat).toContain("w-1")
+    expect(gs.hat).toContain("w-2")
+    expect(gs.hat).toHaveLength(4)
+    expect(gs.currentWordId).toBe("w-no-penalty")
   })
 
   it("when lastAction is null: throws UndoNotAvailableError (AC 12)", async () => {
