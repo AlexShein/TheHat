@@ -6,6 +6,9 @@
   import RoundEnd from "$lib/components/phases/RoundEnd.svelte"
   import type { Database } from "firebase/database"
   import type { Team, Player, GameState } from "$lib/db-types"
+  import { getTimeRemaining } from "$lib/game/timer"
+  import { getWordDisplayedAt } from "$lib/game/word-display"
+  import { handleTimerExpiry } from "$lib/game/turn-expiry"
 
   let {
     db,
@@ -52,7 +55,82 @@
   const isExplainer = $derived(playerId === currentExplainerId)
 
   const explainerName = $derived(players[currentExplainerId]?.name ?? "Unknown")
+
+  // Client-side only: track wordDisplayedAt for timer expiry check
+  let wordDisplayed = $state<{ id: string | null; displayedAt: number | null }>({
+    id: null,
+    displayedAt: null,
+  })
+
+  let prevWordId = $state<string | null>(null)
+  let timerExpiryError = $state("")
+
+  $effect(() => {
+    if (phase !== "explaining") return
+
+    const displayedAt = getWordDisplayedAt(currentWordId, prevWordId)
+    wordDisplayed = { id: currentWordId, displayedAt }
+    prevWordId = currentWordId
+
+    // Reset on phase exit
+    return () => {
+      wordDisplayed = { id: null, displayedAt: null }
+    }
+  })
+
+  // Timer expiry watcher — only explainer writes (single-writer-per-turn invariant)
+  $effect(() => {
+    if (!isExplainer) return
+    if (phase !== "explaining") return
+
+    const remaining = getTimeRemaining(timerStartedAt, timerDuration, pausedAt, timeRemainingAtPause)
+    if (remaining > 0) {
+      // Set up interval to check every 100ms
+      let fired = false
+      const interval = setInterval(() => {
+        if (fired) return
+        const r = getTimeRemaining(timerStartedAt, timerDuration, pausedAt, timeRemainingAtPause)
+        if (r <= 0) {
+          fired = true
+          clearInterval(interval)
+          handleTimerExpiry(
+            db,
+            roomId,
+            timerStartedAt,
+            timerDuration,
+            pausedAt,
+            timeRemainingAtPause,
+            wordDisplayed.id,
+            wordDisplayed.displayedAt,
+          ).catch((err: unknown) => {
+            timerExpiryError = err instanceof Error ? err.message : "Timer expiry failed"
+          })
+        }
+      }, 100)
+      return () => clearInterval(interval)
+    } else {
+      // Already expired on mount — fire immediately
+      handleTimerExpiry(
+        db,
+        roomId,
+        timerStartedAt,
+        timerDuration,
+        pausedAt,
+        timeRemainingAtPause,
+        wordDisplayed.id,
+        wordDisplayed.displayedAt,
+      ).catch((err: unknown) => {
+        timerExpiryError = err instanceof Error ? err.message : "Timer expiry failed"
+      })
+    }
+  })
 </script>
+
+{#if timerExpiryError}
+  <div class="p-2 mb-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm" role="alert">
+    {timerExpiryError}
+  </div>
+{/if}
 
 <!-- Round indicator -->
 <p class="text-center text-sm text-gray-500 mb-2">Round {round} of 3</p>
