@@ -4,10 +4,9 @@ import type { GameState, Word } from "$lib/db-types"
 
 /**
  * Atomically removes one random wordId from gameState.hat via runTransaction.
- * Reads hat outside transaction (safe under single-writer-per-turn),
- * pre-fetches word text, then single transaction verifies+removes+writes
- * currentWordId and currentWordText all atomically.
- * Returns the drawn wordId, or null if hat was empty.
+ * Hat pre-check outside transaction (fast path for empty hat).
+ * Random index chosen inside transaction to guard against concurrent reads
+ * picking the same word. Returns the drawn wordId, or null if hat was empty.
  * Must be called only by currentExplainerId's client.
  */
 export async function drawWord(db: Database, roomId: string): Promise<string | null> {
@@ -20,32 +19,31 @@ export async function drawWord(db: Database, roomId: string): Promise<string | n
   const hat: string[] = gs.hat ?? []
   if (hat.length === 0) return null
 
-  const idx = Math.floor(Math.random() * hat.length)
-  const drawnWordId = hat[idx]!
-
-  // Pre-fetch word text — word node may not exist (ghost-word edge case)
-  let wordText: string | null = null
-  try {
-    const wordSnap = await get(ref(db, `rooms/${roomId}/words/${drawnWordId}`))
-    if (wordSnap.exists()) {
-      const word = wordSnap.val() as Word
-      wordText = word.text ?? null
+  // Pre-fetch all word texts since random pick happens inside transaction
+  const wordsSnap = await get(ref(db, `rooms/${roomId}/words`))
+  const wordsMap = new Map<string, string>()
+  if (wordsSnap.exists()) {
+    const words = wordsSnap.val() as Record<string, Word>
+    for (const [id, w] of Object.entries(words)) {
+      if (w?.text) wordsMap.set(id, w.text)
     }
-  } catch {
-    // Word node missing — currentWordText stays null
   }
 
-  // Single transaction: verify word still in hat, remove, write all fields
+  // Single transaction: pick random word from CURRENT hat, remove, write all fields
   const result = await runTransaction(gsRef, (current) => {
     if (current === null) return null
 
     const currentGs = current as GameState
     const currentHat: string[] = currentGs.hat ?? []
 
-    // Verify word is still present (stale read guard)
-    if (!currentHat.includes(drawnWordId)) return // abort — word already drawn
+    if (currentHat.length === 0) return null
+
+    // Pick random word from CURRENT hat (inside transaction for safety)
+    const idx = Math.floor(Math.random() * currentHat.length)
+    const drawnWordId = currentHat[idx]!
 
     const newHat = currentHat.filter((id) => id !== drawnWordId)
+    const wordText = wordsMap.get(drawnWordId) ?? null
 
     return {
       ...currentGs,

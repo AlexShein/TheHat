@@ -50,7 +50,7 @@
     const config: RoomConfig = {
       numTeams,
       wordCount,
-      timerDuration,
+      'timerDuration': timerDuration*1000,
       skipPenalty: skipPenalty ?? false,
     }
 
