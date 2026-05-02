@@ -18,7 +18,7 @@ export async function drawWord(db: Database, roomId: string): Promise<string | n
     const gs = current as GameState
     const hat: string[] = gs.hat ?? []
 
-    if (hat.length === 0) return current // abort — hat empty, no mutation
+    if (hat.length === 0) return // abort transaction — hat empty
 
     const idx = Math.floor(Math.random() * hat.length)
     const drawn = hat[idx]!
