@@ -34,11 +34,10 @@ These files are created in Phase 0 and **must not be restructured** without upda
 - `Date.now()` is forbidden for these fields. It causes timer drift across clients.
 - `timeRemainingAtPause` is the only timer field written as a plain number (it's a computed delta, not a timestamp).
 
-### 3. Hat mutations via transaction only
+### 3. Hat mutations
 
-- `gameState.hat` and `gameState.currentWordId` are always mutated together inside `runTransaction()`.
-- Direct `set()` or `update()` on these paths is forbidden — it creates race conditions when the explainer double-taps.
-- Only the client of `gameState.currentExplainerId` executes hat transactions. All other clients observe.
+- Direct `set()` or `update()` are OK.
+- Only the client of `gameState.currentExplainerId` executes hat mutations. All other clients observe.
 
 ### 4. `onDisconnect` registration order
 

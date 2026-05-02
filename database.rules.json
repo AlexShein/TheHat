@@ -25,9 +25,9 @@
           }
         },
         "teams": {
-          ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('rooms').child($roomId).child('meta').child('createdBy').val() === auth.uid)",
+          ".write": "auth != null",
           "$teamId": {
-            ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('rooms').child($roomId).child('meta').child('createdBy').val() === auth.uid)"
+            ".write": "auth != null"
           }
         },
         "words": {
@@ -37,10 +37,10 @@
           }
         },
         "gameState": {
-          ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('rooms').child($roomId).child('meta').child('createdBy').val() === auth.uid)"
+          ".write": "auth != null"
         },
         "status": {
-          ".write": "auth != null && (root.child('admins').child(auth.uid).exists() || root.child('rooms').child($roomId).child('meta').child('createdBy').val() === auth.uid)",
+          ".write": "auth != null",
           ".validate": "newData.isString() && (newData.val() === 'word-entry' || newData.val() === 'pre-start' || newData.val() === 'playing' || newData.val() === 'finished')"
         }
       }

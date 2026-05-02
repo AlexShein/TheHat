@@ -13,19 +13,20 @@ export function getTimeRemaining(
   pausedAt: number | null,
   timeRemainingAtPause: number | null,
 ): number {
+  const timerDurationMs = timerDuration * 1000
   // Timer not started yet — return full duration
   if (timerStartedAt === null) {
-    return timerDuration
+    return timerDurationMs
   }
 
   // Timer is paused — return frozen remaining, falling back to 0
-  if (pausedAt !== null) {
+  if (pausedAt !== undefined) {
     return timeRemainingAtPause ?? 0
   }
 
   // Timer is running — compute elapsed from client clock
   const elapsed = Date.now() - timerStartedAt
-  const remaining = timerDuration - elapsed
+  const remaining = timerDurationMs - elapsed
 
   // Clamp: never return negative
   return remaining > 0 ? remaining : 0
