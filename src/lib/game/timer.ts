@@ -6,6 +6,7 @@
  * the remaining time is frozen at `timeRemainingAtPause`.
  *
  * All timestamp parameters are epoch milliseconds (serverTimestamp values).
+ * timerDuration is in milliseconds.
  */
 export function getTimeRemaining(
   timerStartedAt: number | null,
@@ -19,7 +20,7 @@ export function getTimeRemaining(
   }
 
   // Timer is paused — return frozen remaining, falling back to 0
-  if (pausedAt !== null) {
+  if (!!pausedAt) {
     return timeRemainingAtPause ?? 0
   }
 

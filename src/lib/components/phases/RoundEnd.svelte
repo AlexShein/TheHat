@@ -1,0 +1,76 @@
+<script lang="ts">
+  import { endRound } from "$lib/game/turn-round"
+  import TeamScore from "$lib/components/shared/TeamScore.svelte"
+  import type { Database } from "firebase/database"
+  import type { Team, Player } from "$lib/db-types"
+
+  let {
+    db,
+    roomId,
+    playerId,
+    round,
+    teams,
+    players,
+  }: {
+    db: Database
+    roomId: string
+    playerId: string
+    round: number
+    teams: Record<string, Team>
+    players: Record<string, Player>
+  } = $props()
+
+  const isAdmin = $derived(players[playerId]?.isAdmin ?? false)
+  const isLastRound = $derived(round === 3)
+
+  let loading = $state(false)
+
+  async function handleClick(): Promise<void> {
+    loading = true
+    try {
+      await endRound(db, roomId)
+    } finally {
+      loading = false
+    }
+  }
+</script>
+
+<div class="text-center p-6">
+  <p class="text-xl font-semibold text-gray-700 mb-4">Round {round} Complete</p>
+
+  <!-- Cumulative team scores -->
+  <div class="flex gap-2 mb-6">
+    {#each Object.entries(teams) as [tid, team] (tid)}
+      {@const total = (team.roundScores.round1 ?? 0) + (team.roundScores.round2 ?? 0) + (team.roundScores.round3 ?? 0)}
+      <div class="flex-1">
+        <TeamScore teamName={team.name} score={total} isActive={false} />
+      </div>
+    {/each}
+  </div>
+
+  {#if isAdmin}
+    {#if isLastRound}
+      <button
+        onclick={handleClick}
+        disabled={loading}
+        class="min-h-11 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg
+               hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
+               transition-colors"
+      >
+        {loading ? "Loading…" : "See Results"}
+      </button>
+    {:else}
+      <button
+        onclick={handleClick}
+        disabled={loading}
+        class="min-h-11 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg
+               hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
+               transition-colors"
+      >
+        {loading ? "Loading…" : "Next Round"}
+      </button>
+    {/if}
+  {:else}
+    <p class="text-sm text-gray-500">Waiting for the game admin to continue…</p>
+  {/if}
+</div>

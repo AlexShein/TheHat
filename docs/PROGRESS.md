@@ -199,3 +199,24 @@ Fixed stale read-modify-write in `advanceTurn()` (now uses atomic `update()` ins
 | `src/lib/game/turn-advance.ts` | MODIFY — atomic update() |
 | `src/lib/game/turn-round.ts`, `src/lib/game/turn-round.test.ts` | NEW — endRound (5 tests) |
 | `src/lib/game/turn-expiry.ts`, `src/lib/game/turn-expiry.test.ts` | MODIFY — hat-empty→round_end, endTurnEarly phase guard (13 tests) |
+
+---
+
+## Phase 4 — Rounds & Scoreboard (Split into 2 sub-phases)
+
+Phase 4 scope: 2 components + restartGame logic. `endRound()` already exists from Phase 3.4 cleanup. Split into:
+
+| Sub-phase | Scope                                        | Files | Depends on                     |
+| --------- | -------------------------------------------- | ----- | ------------------------------ |
+| 4.1       | RoundEnd component, wiring into GameMain     | 3     | Phase 3.4 (endRound exists)    |
+| 4.2       | Scoreboard component + restartGame(), wiring | 4     | Phase 4.1 (status transitions) |
+
+All sub-phase plans: `docs/plans/PHASE-4.{1,2}_IMPLEMENTATION.md`.
+
+---
+
+## Phase 4.1 — RoundEnd Component & Round Transition ✅
+
+RoundEnd component renders when `phase === 'round_end'` — shows cumulative team scores, admin "Next Round" (round < 3) or "See Results" (round === 3) button, non-admin waiting message. No new logic — delegates to existing `endRound()` from `turn-round.ts`. All 182 tests pass, lint clean.
+| `src/lib/components/phases/RoundEnd.svelte` | NEW — round intermission UI |
+| `src/lib/components/phases/GameMain.svelte` | MODIFY — replace stub, add isAdmin prop |

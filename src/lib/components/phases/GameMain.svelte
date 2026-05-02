@@ -3,6 +3,7 @@
   import TeamScore from "$lib/components/shared/TeamScore.svelte"
   import PostTurn from "$lib/components/phases/PostTurn.svelte"
   import ExplainerView from "$lib/components/phases/ExplainerView.svelte"
+  import RoundEnd from "$lib/components/phases/RoundEnd.svelte"
   import type { Database } from "firebase/database"
   import type { Team, Player, GameState } from "$lib/db-types"
 
@@ -10,6 +11,7 @@
     db,
     roomId,
     playerId,
+    hat,
     phase,
     round,
     currentExplainerId,
@@ -29,6 +31,7 @@
     db: Database
     roomId: string
     playerId: string
+    hat: string[]
     phase: GameState["phase"]
     round: number
     currentExplainerId: string
@@ -53,7 +56,7 @@
 
 <!-- Round indicator -->
 <p class="text-center text-sm text-gray-500 mb-2">Round {round} of 3</p>
-
+<p class="text-center text-sm text-gray-500 mb-2">Words left in the hat: {hat.length}</p>
 <!-- Team scoreboard header -->
 <div class="flex gap-2 mb-3">
   {#each Object.entries(teams) as [tid, team] (tid)}
@@ -172,8 +175,12 @@
     nextTeamName={teams[currentTeamId]?.name ?? "Unknown"}
   />
 {:else if phase === "round_end"}
-  <div class="text-center p-6">
-    <p class="text-xl font-semibold text-gray-700">Round End</p>
-    <p class="text-sm text-gray-500">Phase 4 — Scoreboard coming soon</p>
-  </div>
+  <RoundEnd
+    {db}
+    {roomId}
+    {playerId}
+    {round}
+    {teams}
+    {players}
+  />
 {/if}

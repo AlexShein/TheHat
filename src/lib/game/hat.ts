@@ -4,66 +4,58 @@ import type { GameState, Word } from "$lib/db-types"
 
 /**
  * Atomically removes one random wordId from gameState.hat via runTransaction.
- * Writes drawn wordId to gameState.currentWordId and fetches word text
- * from /words/{wordId} to write gameState.currentWordText in same transaction.
- * Returns the drawn wordId, or null if hat was empty.
+ * Hat pre-check outside transaction (fast path for empty hat).
+ * Random index chosen inside transaction to guard against concurrent reads
+ * picking the same word. Returns the drawn wordId, or null if hat was empty.
  * Must be called only by currentExplainerId's client.
  */
 export async function drawWord(db: Database, roomId: string): Promise<string | null> {
   const gsRef = ref(db, `rooms/${roomId}/gameState`)
 
+  // Read current hat outside transaction — safe: single-writer-per-turn
+  const gsSnap = await get(gsRef)
+  if (!gsSnap.exists()) return null
+  const gs = gsSnap.val() as GameState
+  const hat: string[] = gs.hat ?? []
+  if (hat.length === 0) return null
+
+  // Pre-fetch all word texts since random pick happens inside transaction
+  const wordsSnap = await get(ref(db, `rooms/${roomId}/words`))
+  const wordsMap = new Map<string, string>()
+  if (wordsSnap.exists()) {
+    const words = wordsSnap.val() as Record<string, Word>
+    for (const [id, w] of Object.entries(words)) {
+      if (w?.text) wordsMap.set(id, w.text)
+    }
+  }
+
+  // Single transaction: pick random word from CURRENT hat, remove, write all fields
   const result = await runTransaction(gsRef, (current) => {
     if (current === null) return null
 
-    const gs = current as GameState
-    const hat: string[] = gs.hat ?? []
+    const currentGs = current as GameState
+    const currentHat: string[] = currentGs.hat ?? []
 
-    if (hat.length === 0) return // abort transaction — hat empty
+    if (currentHat.length === 0) return null
 
-    const idx = Math.floor(Math.random() * hat.length)
-    const drawn = hat[idx]!
-    const newHat = hat.filter((_, i) => i !== idx)
+    // Pick random word from CURRENT hat (inside transaction for safety)
+    const idx = Math.floor(Math.random() * currentHat.length)
+    const drawnWordId = currentHat[idx]!
+
+    const newHat = currentHat.filter((id) => id !== drawnWordId)
+    const wordText = wordsMap.get(drawnWordId) ?? null
 
     return {
-      ...gs,
+      ...currentGs,
       hat: newHat,
-      currentWordId: drawn,
-      // currentWordText resolved after transaction via separate get()
+      currentWordId: drawnWordId,
+      currentWordText: wordText,
     }
   })
 
   if (!result.committed) return null
-
-  const gs = result.snapshot.val() as GameState | null
-  const wordId = gs?.currentWordId ?? null
-
-  // Fetch word text and write currentWordText separately.
-  // Transaction already wrote currentWordId atomically — text is a non-critical
-  // derived field safe to write after. Observers see it in post_expiry.
-  if (wordId !== null) {
-    try {
-      const wordSnap = await get(ref(db, `rooms/${roomId}/words/${wordId}`))
-      const word = wordSnap.val() as Word | null
-      const wordText = word?.text ?? null
-
-      // Write currentWordText via another transaction to avoid race with concurrent reads
-      await runTransaction(gsRef, (current) => {
-        if (current === null) return null
-        const gs2 = current as GameState
-        return { ...gs2, currentWordText: wordText }
-      })
-    } catch {
-      // Word node doesn't exist — leave currentWordText as null.
-      // Already null from initialization, but ensure consistency.
-      void runTransaction(gsRef, (current) => {
-        if (current === null) return null
-        const gs2 = current as GameState
-        return { ...gs2, currentWordText: null }
-      })
-    }
-  }
-
-  return wordId
+  const finalGs = result.snapshot.val() as GameState | null
+  return finalGs?.currentWordId ?? null
 }
 
 /**

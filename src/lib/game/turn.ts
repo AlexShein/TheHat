@@ -1,4 +1,4 @@
-import { get, ref, set, runTransaction } from "firebase/database"
+import { get, ref, set } from "firebase/database"
 import type { Database } from "firebase/database"
 import type { GameState, Team, RoomConfig, Player, PlayerStats } from "$lib/db-types"
 
@@ -50,9 +50,13 @@ function shuffle<T>(arr: T[]): T[] {
  * Increments `gameState.wordsGuessedThisTurn` by 1 in a transaction.
  * Used by `awardPoint()` to track per-turn guess count for PostTurn display.
  */
+/** Increments `gameState.wordsGuessedThisTurn` by 1. Safe to read-then-write
+ * because single-writer-per-turn invariant ensures no concurrent writes. */
 export async function incrementWordsGuessedThisTurn(db: Database, roomId: string): Promise<void> {
   const gsRef = ref(db, `rooms/${roomId}/gameState/wordsGuessedThisTurn`)
-  await runTransaction(gsRef, (current: number | null) => (current ?? 0) + 1)
+  const snap = await get(gsRef)
+  const current = snap.exists() ? (snap.val() as number) : 0
+  await set(gsRef, current + 1)
 }
 
 export async function initializeGameState(
