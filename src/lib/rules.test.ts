@@ -105,7 +105,7 @@ describe("player node write protection", () => {
 
 describe("room creator as room admin", () => {
   const CREATOR_UID = "creator-001"
-  const NON_CREATOR_UID = "rando-999"
+  // const NON_CREATOR_UID = "rando-999"
 
   beforeAll(async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
