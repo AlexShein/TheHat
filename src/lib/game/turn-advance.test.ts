@@ -218,6 +218,7 @@ describe("advanceTurn", () => {
     await set(ref(db, `rooms/${roomId}/teams/team-2/currentPlayerIndex`), 1)
     await set(ref(db, `rooms/${roomId}/gameState/currentTeamId`), "team-2")
     await set(ref(db, `rooms/${roomId}/gameState/currentExplainerId`), "player-3")
+    await set(ref(db, `rooms/${roomId}/gameState/phase`), "post_turn")
 
     await advanceTurn(db, roomId)
 
@@ -230,6 +231,7 @@ describe("advanceTurn", () => {
     await set(ref(db, `rooms/${roomId}/teams/team-3/currentPlayerIndex`), 1)
     await set(ref(db, `rooms/${roomId}/gameState/currentTeamId`), "team-3")
     await set(ref(db, `rooms/${roomId}/gameState/currentExplainerId`), "player-6")
+    await set(ref(db, `rooms/${roomId}/gameState/phase`), "post_turn")
 
     await advanceTurn(db, roomId)
 
@@ -453,5 +455,64 @@ describe("advanceTurn", () => {
     // No teams node
 
     await expect(advanceTurn(db, roomId)).resolves.toBeUndefined()
+  })
+
+  // AC: phase guard — only acts during post_turn
+  it("when phase is not 'post_turn': does nothing and preserves state", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    await seedAdvanceTurn(db, roomId, {
+      gameState: {
+        round: 1,
+        currentTeamId: "team-1",
+        currentExplainerId: "player-0",
+        phase: "explaining", // not post_turn
+        hat: ["word-a", "word-b"],
+        currentWordId: "word-a",
+        wordsGuessedThisTurn: 2,
+        lastAction: { type: "guessed", wordId: "word-x", scoredTeamId: "team-1", scoreWasPenalty: false },
+        timerDuration: 60,
+        playerStats: {},
+      },
+    })
+
+    await advanceTurn(db, roomId)
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+    // Must not change — wrong phase
+    expect(gs.phase).toBe("explaining")
+    expect(gs.currentWordId).toBe("word-a")
+    expect(gs.wordsGuessedThisTurn).toBe(2)
+    expect(gs.currentTeamId).toBe("team-1")
+  })
+
+  it("when phase is 'waiting_start': does nothing and preserves state", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    await seedAdvanceTurn(db, roomId, {
+      gameState: {
+        round: 1,
+        currentTeamId: "team-1",
+        currentExplainerId: "player-0",
+        phase: "waiting_start", // already waiting
+        hat: ["word-a"],
+        currentWordId: null,
+        wordsGuessedThisTurn: 0,
+        lastAction: null,
+        timerDuration: 60,
+        playerStats: {},
+      },
+    })
+
+    await advanceTurn(db, roomId)
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+    // Must not double-advance
+    expect(gs.phase).toBe("waiting_start")
+    expect(gs.currentTeamId).toBe("team-1")
   })
 })

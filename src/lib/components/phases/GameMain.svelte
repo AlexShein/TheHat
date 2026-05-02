@@ -170,6 +170,8 @@
   {/if}
 {:else if phase === "post_turn"}
   <PostTurn
+    {db}
+    {roomId}
     wordsGuessed={wordsGuessedThisTurn}
     nextExplainerName={explainerName}
     nextTeamName={teams[currentTeamId]?.name ?? "Unknown"}

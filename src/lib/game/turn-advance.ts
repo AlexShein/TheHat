@@ -19,6 +19,10 @@ export async function advanceTurn(db: Database, roomId: string): Promise<void> {
   if (!gsSnap.exists() || !teamsSnap.exists()) return
 
   const gs = gsSnap.val() as GameState
+
+  // Phase guard: only advance during post_turn
+  if (gs.phase !== "post_turn") return
+
   const teams = teamsSnap.val() as Record<string, Team>
 
   const hat: string[] = gs.hat ?? []
