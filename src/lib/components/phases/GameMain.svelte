@@ -56,6 +56,24 @@
 
   const explainerName = $derived(players[currentExplainerId]?.name ?? "Unknown")
 
+  // Compute next team and explainer for PostTurn display.
+  // Always rotates to next team (round-robin), uses that team's currentPlayerIndex.
+  const teamIds = $derived(Object.keys(teams).sort())
+  const nextTeamId = $derived.by(() => {
+    const currentPos = teamIds.indexOf(currentTeamId)
+    if (currentPos === -1) return currentTeamId
+    const nextPos = (currentPos + 1) % teamIds.length
+    return teamIds[nextPos]!
+  })
+  const nextTeam = $derived(teams[nextTeamId])
+  const nextExplainerId = $derived.by(() => {
+    if (!nextTeam?.playerOrder) return ""
+    const idx = nextTeam.currentPlayerIndex ?? 0
+    return nextTeam.playerOrder[idx] ?? ""
+  })
+  const nextExplainerName = $derived.by(() => players[nextExplainerId]?.name ?? "Unknown")
+  const nextTeamName = $derived.by(() => nextTeam?.name ?? "Unknown")
+
   // Client-side only: track wordDisplayedAt for timer expiry check
   let wordDisplayed = $state<{ id: string | null; displayedAt: number | null }>({
     id: null,
@@ -251,8 +269,8 @@
     {db}
     {roomId}
     wordsGuessed={wordsGuessedThisTurn}
-    nextExplainerName={explainerName}
-    nextTeamName={teams[currentTeamId]?.name ?? "Unknown"}
+    nextExplainerName={nextExplainerName}
+    nextTeamName={nextTeamName}
   />
 {:else if phase === "round_end"}
   <RoundEnd

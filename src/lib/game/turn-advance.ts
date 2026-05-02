@@ -3,11 +3,14 @@ import type { Database } from "firebase/database"
 import type { GameState, Team } from "$lib/db-types"
 
 /**
- * Advances to next explainer in team, or next team if team exhausted.
- * Writes: phase, currentTeamId, currentExplainerId, currentPlayerIndex,
+ * Advances turn to next team (round-robin). Always rotates teams between turns.
+ * Advances current team's currentPlayerIndex (saved for when that team plays again).
+ * Uses next team's existing currentPlayerIndex to select explainer.
+ *
+ * Writes: phase ('waiting_start' or 'round_end'), currentTeamId, currentExplainerId,
  *        currentWordId=null, lastAction=null, wordsGuessedThisTurn=0.
  *
- * If hat.length === 0 after advance, writes phase: 'round_end' instead of 'waiting_start'.
+ * If hat.length === 0, writes phase: 'round_end' without advancing turn order.
  * Reads teams/{teamId}/playerOrder and teams/{teamId}/currentPlayerIndex from RTDB.
  */
 export async function advanceTurn(db: Database, roomId: string): Promise<void> {
@@ -51,36 +54,23 @@ export async function advanceTurn(db: Database, roomId: string): Promise<void> {
   if (playerOrder.length === 0) return
 
   const currentIndex = currentTeam.currentPlayerIndex ?? 0
-  const nextIndex = (currentIndex + 1) % playerOrder.length
 
-  // Determine if we stay on same team or move to next
-  let nextTeamId: string
-  let newIndex: number
-
-  if (nextIndex !== 0) {
-    // Still within same team — advance index only
-    nextTeamId = currentTeamId
-    newIndex = nextIndex
-  } else {
-    // Wrapped within team — move to next team, reset index to 0
-    const currentTeamPos = teamIds.indexOf(currentTeamId)
-    const nextTeamPos = (currentTeamPos + 1) % teamIds.length
-    nextTeamId = teamIds[nextTeamPos]!
-    newIndex = 0
-  }
+  // Always rotate to next team. Advance current team's index for next time.
+  const nextCurrentTeamIndex = (currentIndex + 1) % playerOrder.length
+  const currentTeamPos = teamIds.indexOf(currentTeamId)
+  const nextTeamPos = (currentTeamPos + 1) % teamIds.length
+  const nextTeamId = teamIds[nextTeamPos]!
 
   const nextTeam = teams[nextTeamId]
   if (!nextTeam) return
 
-  const nextExplainerId = nextTeam.playerOrder?.[newIndex]
+  // Use next team's existing currentPlayerIndex to pick explainer
+  const nextTeamIndex = nextTeam.currentPlayerIndex ?? 0
+  const nextExplainerId = nextTeam.playerOrder?.[nextTeamIndex]
   if (!nextExplainerId) return
 
-  // Update currentPlayerIndex for both old and new teams when wrapping
-  if (nextTeamId !== currentTeamId) {
-    // Wrapping to next team: reset old team's index to 0
-    await set(ref(db, `rooms/${roomId}/teams/${currentTeamId}/currentPlayerIndex`), 0)
-  }
-  await set(ref(db, `rooms/${roomId}/teams/${nextTeamId}/currentPlayerIndex`), newIndex)
+  // Save current team's advanced index for when it gets next turn
+  await set(ref(db, `rooms/${roomId}/teams/${currentTeamId}/currentPlayerIndex`), nextCurrentTeamIndex)
 
   // Write gameState — use update() for targeted writes, avoids stale ...gs spread
   await update(ref(db, `rooms/${roomId}/gameState`), {
