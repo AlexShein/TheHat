@@ -121,6 +121,7 @@
         {db}
         roomId={data.roomId}
         playerId={localPlayerId}
+        hat={gameStateStore.hat}
         phase={gameStateStore.phase}
         round={gameStateStore.round}
         currentExplainerId={gameStateStore.currentExplainerId}

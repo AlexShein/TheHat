@@ -48,12 +48,28 @@
   let prevWordId = $state<string | null>(null)
   let postExpirySelectedTeam = $state<string | null>(null)
   let errorMessage = $state("")
+  let cooldownRemaining = $state<number>(0)
 
   // Track wordDisplayedAt when currentWordId changes
   $effect(() => {
     const displayed = getWordDisplayedAt(currentWordId, prevWordId)
     wordDisplayedAt = displayed
     prevWordId = currentWordId
+  })
+
+  // Cooldown ticker: updates cooldownRemaining every 100ms while in explaining phase
+  $effect(() => {
+    if (phase !== "explaining" || wordDisplayedAt === null) {
+      cooldownRemaining = 0
+      return
+    }
+    const tick = () => {
+      const elapsed = Date.now() - (wordDisplayedAt ?? Date.now())
+      cooldownRemaining = Math.max(0, 2000 - elapsed)
+    }
+    tick()
+    const interval = setInterval(tick, 100)
+    return () => clearInterval(interval)
   })
 
   // Reset wordDisplayedAt when phase leaves explaining/post_expiry
@@ -92,10 +108,7 @@
   })
 
   // Derived: Skip disabled when round 3 or within 2s of word appearing
-  const skipDisabled = $derived(
-    round === 3 ||
-      (wordDisplayedAt !== null && Date.now() - wordDisplayedAt < 2000),
-  )
+  const skipDisabled = $derived(round === 3 || cooldownRemaining > 0)
 
   // lastAction from RTDB can be undefined (Firebase strips null).
   // Check truthiness: undefined, null, {type:null} all mean "no action".
@@ -225,9 +238,10 @@
       </button>
 
       <button
-        class="min-h-11 px-4 py-2 rounded-lg font-semibold"
+        class="min-h-11 px-4 py-2 rounded-lg font-semibold inline-flex items-center gap-2"
         class:bg-gray-300={skipDisabled}
         class:text-gray-500={skipDisabled}
+        class:cursor-not-allowed={skipDisabled}
         class:bg-orange-500={!skipDisabled}
         class:text-white={!skipDisabled}
         aria-label="Skip"
@@ -235,6 +249,12 @@
         disabled={skipDisabled}
         onclick={handleSkip}
       >
+        {#if skipDisabled}
+          <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+        {/if}
         Skip
       </button>
 

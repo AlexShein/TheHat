@@ -10,6 +10,7 @@
     db,
     roomId,
     playerId,
+    hat,
     phase,
     round,
     currentExplainerId,
@@ -29,6 +30,7 @@
     db: Database
     roomId: string
     playerId: string
+    hat: string[]
     phase: GameState["phase"]
     round: number
     currentExplainerId: string
@@ -53,7 +55,7 @@
 
 <!-- Round indicator -->
 <p class="text-center text-sm text-gray-500 mb-2">Round {round} of 3</p>
-
+<p class="text-center text-sm text-gray-500 mb-2">Words left in the hat: {hat.length}</p>
 <!-- Team scoreboard header -->
 <div class="flex gap-2 mb-3">
   {#each Object.entries(teams) as [tid, team] (tid)}

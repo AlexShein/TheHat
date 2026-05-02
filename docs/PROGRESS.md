@@ -199,3 +199,16 @@ Fixed stale read-modify-write in `advanceTurn()` (now uses atomic `update()` ins
 | `src/lib/game/turn-advance.ts` | MODIFY — atomic update() |
 | `src/lib/game/turn-round.ts`, `src/lib/game/turn-round.test.ts` | NEW — endRound (5 tests) |
 | `src/lib/game/turn-expiry.ts`, `src/lib/game/turn-expiry.test.ts` | MODIFY — hat-empty→round_end, endTurnEarly phase guard (13 tests) |
+
+---
+
+## Phase 4 — Rounds & Scoreboard (Split into 2 sub-phases)
+
+Phase 4 scope: 2 components + restartGame logic. `endRound()` already exists from Phase 3.4 cleanup. Split into:
+
+| Sub-phase | Scope                                        | Files | Depends on                     |
+| --------- | -------------------------------------------- | ----- | ------------------------------ |
+| 4.1       | RoundEnd component, wiring into GameMain     | 3     | Phase 3.4 (endRound exists)    |
+| 4.2       | Scoreboard component + restartGame(), wiring | 4     | Phase 4.1 (status transitions) |
+
+All sub-phase plans: `docs/plans/PHASE-4.{1,2}_IMPLEMENTATION.md`.
