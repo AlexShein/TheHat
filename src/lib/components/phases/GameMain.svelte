@@ -3,9 +3,11 @@
   import TeamScore from "$lib/components/shared/TeamScore.svelte"
   import PostTurn from "$lib/components/phases/PostTurn.svelte"
   import ExplainerView from "$lib/components/phases/ExplainerView.svelte"
+  import type { Database } from "firebase/database"
   import type { Team, Player, GameState } from "$lib/db-types"
 
   let {
+    db,
     roomId,
     playerId,
     phase,
@@ -24,6 +26,7 @@
     players,
     config,
   }: {
+    db: Database
     roomId: string
     playerId: string
     phase: GameState["phase"]
@@ -64,6 +67,7 @@
 {#if phase === "waiting_start"}
   {#if isExplainer}
     <ExplainerView
+      {db}
       {roomId}
       {playerId}
       {phase}
@@ -93,6 +97,7 @@
 {:else if phase === "explaining"}
   {#if isExplainer}
     <ExplainerView
+      {db}
       {roomId}
       {playerId}
       {phase}
@@ -126,6 +131,7 @@
 {:else if phase === "post_expiry"}
   {#if isExplainer}
     <ExplainerView
+      {db}
       {roomId}
       {playerId}
       {phase}

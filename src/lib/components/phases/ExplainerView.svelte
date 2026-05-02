@@ -1,14 +1,19 @@
 <script lang="ts">
-  import { db } from "$lib/firebase"
   import type { Database } from "firebase/database"
   import type { GameState, Team } from "$lib/db-types"
   import { getWordDisplayedAt } from "$lib/game/word-display"
   import { startTurn } from "$lib/game/turn-start"
-  import { drawWord, returnWord } from "$lib/game/hat"
-  import { awardPoint, applyPenalty, undoLastAction } from "$lib/game/scoring"
+  import { undoLastAction } from "$lib/game/scoring"
+  import {
+    recordGuessed,
+    recordSkip,
+    completePostExpiryGuessed,
+    completePostExpirySkip,
+  } from "$lib/game/explainer-actions"
   import { endTurnEarly } from "$lib/game/turn-expiry"
 
   let {
+    db,
     roomId,
     playerId,
     phase,
@@ -21,6 +26,7 @@
     teams,
     skipPenalty,
   }: {
+    db: Database
     roomId: string
     playerId: string
     phase: GameState["phase"]
@@ -34,7 +40,7 @@
     skipPenalty: boolean
   } = $props()
 
-  // Only render for explainer — checked in template via {#if}
+  // Only render for explainer
   const isExplainer = $derived(playerId === currentExplainerId)
 
   // Local state
@@ -50,7 +56,7 @@
     prevWordId = currentWordId
   })
 
-  // Reset wordDisplayedAt when phase moves away from explaining/post_expiry
+  // Reset wordDisplayedAt when phase leaves explaining/post_expiry
   $effect(() => {
     if (phase !== "explaining" && phase !== "post_expiry") {
       wordDisplayedAt = null
@@ -60,7 +66,7 @@
     }
   })
 
-  // Timer expiry sound + vibrate on phase transition
+  // Timer expiry sound + vibrate on phase transition to post_expiry/post_turn
   $effect(() => {
     if (phase === "post_expiry" || phase === "post_turn") {
       try {
@@ -75,7 +81,7 @@
         osc.start()
         osc.stop(ctx.currentTime + 0.3)
       } catch {
-        // Audio not available — silent
+        // Audio not available — silently skip
       }
       try {
         navigator.vibrate(300)
@@ -85,16 +91,22 @@
     }
   })
 
-  // Derived: Skip disabled conditions
+  // Derived: Skip disabled when round 3 or within 2s of word appearing
   const skipDisabled = $derived(
     round === 3 ||
       (wordDisplayedAt !== null && Date.now() - wordDisplayedAt < 2000),
   )
 
+  // lastAction from RTDB can be undefined (Firebase strips null).
+  // Check truthiness: undefined, null, {type:null} all mean "no action".
+  const hasLastAction = $derived(
+    lastAction != null && lastAction.type !== null,
+  )
+
   async function handleStart() {
     try {
       errorMessage = ""
-      await startTurn(db as Database, roomId)
+      await startTurn(db, roomId)
     } catch (err: unknown) {
       errorMessage = err instanceof Error ? err.message : "Failed to start turn"
     }
@@ -104,30 +116,34 @@
     if (phase !== "explaining" && phase !== "post_expiry") return
     try {
       errorMessage = ""
-      const scoredTeamId = phase === "post_expiry" ? postExpirySelectedTeam : currentTeamId
-      if (!scoredTeamId) {
-        errorMessage = "Select a team first"
-        return
-      }
-
-      await awardPoint(db as Database, roomId, scoredTeamId, currentExplainerId, round)
 
       if (phase === "post_expiry") {
-        // AC 10: after post_expiry guessed → post_turn, clear word
-        const { update, ref } = await import("firebase/database")
-        await update(ref(db, `rooms/${roomId}/gameState`), {
-          phase: "post_turn",
-          currentWordId: null,
-          lastAction: null,
-        })
+        if (!postExpirySelectedTeam) {
+          errorMessage = "Select a team first"
+          return
+        }
+        await completePostExpiryGuessed(
+          db,
+          roomId,
+          postExpirySelectedTeam,
+          currentExplainerId,
+          round,
+        )
         return
       }
 
-      // explaining phase: draw next word
-      const nextWordId = await drawWord(db as Database, roomId)
+      // explaining phase
+      if (!currentWordId) return
+      const nextWordId = await recordGuessed(
+        db,
+        roomId,
+        currentWordId,
+        currentTeamId,
+        currentExplainerId,
+        round,
+      )
       if (nextWordId === null) {
-        // Hat empty — end turn early
-        await endTurnEarly(db as Database, roomId)
+        await endTurnEarly(db, roomId)
       }
     } catch (err: unknown) {
       errorMessage = err instanceof Error ? err.message : "Failed to record guess"
@@ -139,28 +155,25 @@
     if (skipDisabled && phase === "explaining") return
     try {
       errorMessage = ""
-      if (currentWordId !== null) {
-        await returnWord(db as Database, roomId, currentWordId)
-      }
 
       if (phase === "post_expiry") {
-        // AC 11: post_expiry skip → post_turn, clear word
-        const { update, ref } = await import("firebase/database")
-        await update(ref(db, `rooms/${roomId}/gameState`), {
-          phase: "post_turn",
-          currentWordId: null,
-          lastAction: null,
-        })
+        if (!currentWordId) return
+        await completePostExpirySkip(db, roomId, currentWordId)
         return
       }
 
-      if (skipPenalty) {
-        await applyPenalty(db as Database, roomId, currentTeamId, true, round)
-      }
-
-      const nextWordId = await drawWord(db as Database, roomId)
+      // explaining phase
+      if (!currentWordId) return
+      const nextWordId = await recordSkip(
+        db,
+        roomId,
+        currentWordId,
+        currentTeamId,
+        skipPenalty,
+        round,
+      )
       if (nextWordId === null) {
-        await endTurnEarly(db as Database, roomId)
+        await endTurnEarly(db, roomId)
       }
     } catch (err: unknown) {
       errorMessage = err instanceof Error ? err.message : "Failed to skip"
@@ -168,10 +181,10 @@
   }
 
   async function handleUndo() {
-    if (lastAction === null || lastAction.type === null) return
+    if (!hasLastAction) return
     try {
       errorMessage = ""
-      await undoLastAction(db as Database, roomId, round, skipPenalty)
+      await undoLastAction(db, roomId, round, skipPenalty)
     } catch (err: unknown) {
       errorMessage = err instanceof Error ? err.message : "Failed to undo"
     }
@@ -225,7 +238,7 @@
         Skip
       </button>
 
-      {#if lastAction !== null && lastAction.type !== null}
+      {#if hasLastAction}
         <button
           class="min-h-11 px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg"
           aria-label="Undo"
@@ -280,7 +293,7 @@
     </div>
 
   {:else}
-    <!-- waiting_start is handled above, other phases show nothing -->
+    <!-- Other phases show nothing -->
   {/if}
   </div>
 {/if}

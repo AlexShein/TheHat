@@ -182,10 +182,12 @@ Split `turn.ts` into `turn-advance.ts` (advanceTurn: round-robin team/player cyc
 
 ### Phase 3.5 — ExplainerView ✅
 
-ExplainerView component with Start/Guessed/Skip/Undo buttons and post-expiry team selector. `word-display.ts` tracks word display time locally for 2s Skip lockout. `turn-start.ts` handles Start button Firebase writes. GameMain updated to route ExplainerView for explainer phases. 5 new tests pass, lint clean.
-| `src/lib/components/phases/ExplainerView.svelte` | NEW — explainer controls (3 modes, thin controller) |
+ExplainerView component with Start/Guessed/Skip/Undo buttons and post-expiry team selector. All Firebase writes extracted to `explainer-actions.ts` (recordGuessed, recordSkip, completePostExpiryGuessed, completePostExpirySkip). `word-display.ts` tracks word display time locally for 2s Skip lockout. `turn-start.ts` handles Start button Firebase writes. Fixed `drawWord()` transaction abort — empty hat now returns `undefined` (aborts) instead of `current` (committed stale currentWordId). 13 new tests (5 word-display + 8 explainer-actions), 185 total pass, lint clean.
+| `src/lib/components/phases/ExplainerView.svelte` | NEW — explainer controls (3 modes, thin controller, delegates to explainer-actions) |
+| `src/lib/game/explainer-actions.ts`, `src/lib/game/explainer-actions.test.ts` | NEW — recordGuessed, recordSkip, completePostExpiryGuessed, completePostExpirySkip (8 tests) |
 | `src/lib/game/word-display.ts`, `src/lib/game/word-display.test.ts` | NEW — getWordDisplayedAt (5 tests) |
 | `src/lib/game/turn-start.ts` | NEW — startTurn with serverTimestamp |
+| `src/lib/game/hat.ts` | MODIFY — drawWord abort fix (undefined vs current) |
 | `src/lib/components/phases/GameMain.svelte` | MODIFY — delegates to ExplainerView, passes new props |
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — passes roomId, currentWordId, lastAction, config to GameMain |
 

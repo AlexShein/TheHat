@@ -118,6 +118,7 @@
   {:else if screen.kind === "playing"}
     {#if gameStateStore && teamsStore && localPlayerId}
       <GameMain
+        {db}
         roomId={data.roomId}
         playerId={localPlayerId}
         phase={gameStateStore.phase}
