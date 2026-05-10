@@ -238,3 +238,11 @@ Scoreboard renders on `status === 'finished'` with team totals (sum of 3 roundSc
 `pauseGame()` captures current timer state via `serverTimestamp()`, `resumeGame()` restores timer with synthetic `timerStartedAt` offset preserving remaining time. Both guard phase, null timer, double-pause, and admin-only. 14 tests (pause success, resume success, roundtrip, guard errors, permission errors) pass. All 211 tests pass, lint clean.
 | `src/lib/game/turn-pause.ts` | NEW — pauseGame(), resumeGame(), error classes |
 | `src/lib/game/turn-pause.test.ts` | NEW — 14 tests |
+
+---
+
+## Phase 5.2 — Reassign Explainer Logic ✅
+
+`reassignExplainer()` updates `currentExplainerId` and `currentPlayerIndex` atomically within the same team, gated by pause check and admin/creator permission. Validates new player is in team's `playerOrder`, is idempotent, and maintains index-to-playerId consistency. 7 tests pass, lint clean.
+| `src/lib/game/turn-reassign.ts` | NEW — reassignExplainer, error classes |
+| `src/lib/game/turn-reassign.test.ts` | NEW — 7 tests |
