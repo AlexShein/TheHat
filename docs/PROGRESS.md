@@ -230,3 +230,11 @@ Scoreboard renders on `status === 'finished'` with team totals (sum of 3 roundSc
 | `src/lib/game/turn-round.test.ts` | MODIFY — 9 restart tests |
 | `src/lib/components/phases/Scoreboard.svelte` | NEW — final scoreboard UI |
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire Scoreboard, keep stores alive during finished status |
+
+---
+
+## Phase 5.1 — Pause/Resume Game Logic ✅
+
+`pauseGame()` captures current timer state via `serverTimestamp()`, `resumeGame()` restores timer with synthetic `timerStartedAt` offset preserving remaining time. Both guard phase, null timer, double-pause, and admin-only. 14 tests (pause success, resume success, roundtrip, guard errors, permission errors) pass. All 211 tests pass, lint clean.
+| `src/lib/game/turn-pause.ts` | NEW — pauseGame(), resumeGame(), error classes |
+| `src/lib/game/turn-pause.test.ts` | NEW — 14 tests |
