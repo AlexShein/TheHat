@@ -1,6 +1,7 @@
 # TheHat
 
 Word guessing game mobile-first web app.
+See rules in [the PRD document](/docs/PRD.md)
 Supports up to 16 players.
 
 ## Admin Management
