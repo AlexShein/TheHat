@@ -2,6 +2,7 @@ import { ref, get, set, update } from "firebase/database"
 import type { Database } from "firebase/database"
 import type { GameState } from "$lib/db-types"
 import { getTimeRemaining } from "./timer"
+import { returnWord } from "./hat"
 
 /**
  * Checks timer state and current word display duration.
@@ -43,7 +44,8 @@ export async function handleTimerExpiry(
   if (currentWordId !== null) {
     // Word exists — determine if explainer gets post_expiry or not
     if (wordDisplayedAt !== null && Date.now() - wordDisplayedAt <= 2000) {
-      // Word displayed ≤2s — too fresh, skip to post_turn
+      // Word displayed ≤2s — too fresh, return to hat before skipping
+      await returnWord(db, roomId, currentWordId)
       await update(ref(db, `rooms/${roomId}/gameState`), {
         phase: "post_turn",
         currentWordId: null,

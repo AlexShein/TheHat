@@ -230,3 +230,11 @@ Scoreboard renders on `status === 'finished'` with team totals (sum of 3 roundSc
 | `src/lib/game/turn-round.test.ts` | MODIFY — 9 restart tests |
 | `src/lib/components/phases/Scoreboard.svelte` | NEW — final scoreboard UI |
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire Scoreboard, keep stores alive during finished status |
+
+---
+
+## Bug Fix — Word Lost on Timer Expiry ✅
+
+Fixed `handleTimerExpiry()` discarding `currentWordId` without returning word to hat when timer expires within 2s of word display — word now returned via `returnWord()` transaction before phase transition to `post_turn`. All 198 tests pass, lint clean.
+| `src/lib/game/turn-expiry.ts` | MODIFY — add returnWord() call before discarding currentWordId |
+| `src/lib/game/turn-expiry.test.ts` | MODIFY — test word reappears in hat after fresh-word timer expiry |
