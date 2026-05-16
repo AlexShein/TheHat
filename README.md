@@ -34,8 +34,8 @@ The Hat (Шляпа) is a classic party word-guessing game played in three round
 
 1. **Word Entry** — Every player submits words (e.g., 5 each). All words go into a shared "hat."
 2. **Round 1 — Explain Freely** — Use any words to describe the target word. No gestures, no translations.
-3. **Round 2 — One Word** — Explain using only ONE word. Teammates guess from that single hint.
-4. **Round 3 — Pantomime** — No words at all. Act it out.
+3. **Round 2 — Pantomime** — No words at all. Act it out.
+4. **Round 3 — One Word** — Explain using only ONE word. Teammates guess from that single hint.
 
 Each turn, one player explains while their team guesses. Timer counts down. Correct guesses score points. Hat empties → round ends. Three rounds → scoreboard shows the winner.
 
@@ -54,15 +54,12 @@ Each turn, one player explains while their team guesses. Timer counts down. Corr
 - **Mobile-first** — Touch targets ≥ 44px, works on any screen size
 - **Atomic word drawing** — Transactions prevent two players from drawing the same word
 - **Server-synced timer** — Firebase server timestamps eliminate clock drift
-- **Disconnect handling** — Auto-pauses when explainer drops, admin can reassign
 - **Admin controls** — Pause, change explainer, restart game
 - **Team rotation** — Round-robin turn order preserved across rounds
-- **Skip penalty** — Optional -1 point for skipped words (disabled in round 3)
+- **Skip penalty** — Optional -1 point for skipped words (skipping is disabled in round 3)
 - **Undo** — Revert last action during a turn
 - **Scoreboard** — Per-team scores + per-player words-explained stats
 - **QR code invites** — Generate shareable invite links
-- **Room cleanup** — Stale rooms deleted 1 hour after last disconnect
-- **Solo dev mode** — Bypass minimum player requirements for local testing
 
 ---
 
@@ -147,7 +144,7 @@ src/
 
 ### Prerequisites
 
-- Node.js ≥ 20
+- Node.js == 25
 - Firebase project with RTDB and Google Auth enabled
 - Service account key for admin scripts
 
