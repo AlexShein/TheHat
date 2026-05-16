@@ -251,3 +251,11 @@ Fix: `advanceTurn()` always rotates team and player index, even when hat is empt
 | `src/lib/game/turn-round.ts` | MODIFY — update comment to clarify rotation lives in advanceTurn |
 | `src/lib/game/turn-round.test.ts` | MODIFY — update comment on preserved rotation |
 | `docs/CROSS_CUTTING_CONSTRAINTS.md` | MODIFY — add rotation invariant to Phase 3→4 dependencies |
+
+---
+
+## Bug Fix — Undo Fails to Restore Word on Explainer Screen ✅
+
+Root cause: `undoLastAction()` used `set()` (not `runTransaction()`) for hat mutation, wrote `currentWordText: null` (never resolved word text), and omitted `currentWordText` from undo writes entirely. Combined with `set()` overwrite, race possible in post_expiry undo where explainer picks team before undo. Fix rewrites `undoLastAction()` to use `runTransaction()` with pre-fetched words map, writes `currentWordText` from words node, and atomically updates hat + currentWordId + currentWordText + lastAction + playerStats. Expanded scoring test suite from 12 → 16 tests (4 new: guessed undo restores word text, skipped undo restores word text, word in hat after undo, skipped undo no score adjustment when penalty not applied). All 209 tests pass, lint clean.
+| `src/lib/game/scoring.ts` | REWRITE — undoLastAction uses runTransaction, resolves currentWordText from words node |
+| `src/lib/game/scoring.test.ts` | MODIFY — 4 new undo tests (word text restoration, word-in-hat, no-penalty skip undo) |

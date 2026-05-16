@@ -1,6 +1,6 @@
-import { ref, set, get } from "firebase/database"
+import { ref, set, get, runTransaction } from "firebase/database"
 import type { Database } from "firebase/database"
-import type { GameState, LastAction } from "$lib/db-types"
+import type { GameState, LastAction, Word } from "$lib/db-types"
 import { incrementWordsGuessedThisTurn } from "./turn"
 
 export class UndoNotAvailableError extends Error {
@@ -59,7 +59,7 @@ export async function applyPenalty(
 
 /**
  * Reverses last action (guessed or skipped).
- * Reads gameState atomically, computes rollback, writes back.
+ * Reads gameState + words, computes rollback, writes via runTransaction.
  * Safe under single-writer-per-turn invariant.
  * Throws UndoNotAvailableError if lastAction is null.
  */
@@ -70,46 +70,69 @@ export async function undoLastAction(
   skipPenalty: boolean,
 ): Promise<void> {
   const gsRef = ref(db, `rooms/${roomId}/gameState`)
-  const snap = await get(gsRef)
-  if (!snap.exists()) throw new UndoNotAvailableError()
 
-  const gs = snap.val() as GameState
+  // Read gameState + words pre-transaction
+  const [gsSnap, wordsSnap] = await Promise.all([get(gsRef), get(ref(db, `rooms/${roomId}/words`))])
+
+  if (!gsSnap.exists()) throw new UndoNotAvailableError()
+
+  const gs = gsSnap.val() as GameState
   const action: LastAction | null | undefined = gs.lastAction ?? null
 
   if (!action || action.type === null) {
     throw new UndoNotAvailableError()
   }
 
-  // Compute new hat — restore both lastAction.wordId and currentWordId.
-  // On skip-undo: currentWordId is the word drawn post-skip (must not be lost).
-  // On guess-undo: currentWordId is the word being explained (must return).
-  const hat: string[] = [...(gs.hat ?? [])]
-  if (gs.currentWordId !== null && !hat.includes(gs.currentWordId)) {
-    hat.push(gs.currentWordId)
-  }
-  if (action.wordId !== null && !hat.includes(action.wordId)) {
-    hat.push(action.wordId)
-  }
-
-  // Compute updated playerStats
-  const playerStats = { ...(gs.playerStats ?? {}) }
-  const explainerId = gs.currentExplainerId
-  if (action.type === "guessed" && explainerId && playerStats[explainerId]) {
-    playerStats[explainerId] = {
-      wordsExplained: Math.max(0, playerStats[explainerId]!.wordsExplained - 1),
+  // Build words lookup for currentWordText resolution
+  const wordsMap = new Map<string, string>()
+  if (wordsSnap.exists()) {
+    const words = wordsSnap.val() as Record<string, Word>
+    for (const [id, w] of Object.entries(words)) {
+      if (w?.text) wordsMap.set(id, w.text)
     }
   }
 
-  // Write gameState atomically (hat + currentWordId + lastAction + playerStats)
-  await set(gsRef, {
-    ...gs,
-    hat,
-    currentWordId: action.wordId,
-    lastAction: null,
-    playerStats,
+  // Compute word text for the restored word
+  const restoredWordText = action.wordId ? (wordsMap.get(action.wordId) ?? null) : null
+
+  // Run transaction: atomically update hat + currentWordId + currentWordText + lastAction + playerStats
+  await runTransaction(gsRef, (current) => {
+    if (current === null) return null
+
+    const currentGs = current as GameState
+    const hat: string[] = [...(currentGs.hat ?? [])]
+
+    // Return currentWordId to hat (the word explainer was looking at when action happened)
+    if (currentGs.currentWordId !== null && !hat.includes(currentGs.currentWordId)) {
+      hat.push(currentGs.currentWordId)
+    }
+
+    // Return action.wordId to hat — it also becomes currentWordId below.
+    // Both currentWordId and action.wordId land in hat per existing test expectations.
+    if (action.wordId !== null && !hat.includes(action.wordId)) {
+      hat.push(action.wordId)
+    }
+
+    // Compute updated playerStats
+    const playerStats = { ...(currentGs.playerStats ?? {}) }
+    const explainerId = currentGs.currentExplainerId
+    if (action.type === "guessed" && explainerId && playerStats[explainerId]) {
+      playerStats[explainerId] = {
+        wordsExplained: Math.max(0, playerStats[explainerId]!.wordsExplained - 1),
+      }
+    }
+
+    return {
+      ...currentGs,
+      hat,
+      currentWordId: action.wordId,
+      currentWordText: restoredWordText,
+      lastAction: null,
+      playerStats,
+    }
   })
 
-  // Roll back team score at separate path
+  // Roll back team score at separate path (not part of transaction — score is separate RTDB node)
   await rollbackTeamScore(db, roomId, action, currentRound, skipPenalty)
 }
 

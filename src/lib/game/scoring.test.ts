@@ -82,6 +82,22 @@ async function seedFullGameState(
   })
 }
 
+/** Seeds words nodes so undo can resolve currentWordText. */
+async function seedWords(db: ReturnType<typeof getDatabase>, roomId: string): Promise<void> {
+  await set(ref(db, `rooms/${roomId}/words/w-1`), { text: "apple", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-2`), { text: "banana", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-3`), { text: "cherry", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-5`), { text: "guessed-five", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-skipped`), { text: "skipped-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-0`), { text: "zero-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-no-penalty`), { text: "no-penalty-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-x`), { text: "x-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-z`), { text: "z-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-current`), { text: "current-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-c`), { text: "c-word", addedBy: "p1" })
+  await set(ref(db, `rooms/${roomId}/words/w-dbl`), { text: "dbl-word", addedBy: "p1" })
+}
+
 describe("awardPoint", () => {
   it("increments team roundScores[currentRound] by 1 (AC 6)", async () => {
     const db = makeDatabase()
@@ -187,26 +203,25 @@ describe("undoLastAction", () => {
       scoredTeamId: "team-1",
       scoreWasPenalty: false,
     }
-    // seed: team-1 round2=3, player-0 wordsExplained=3, currentWordId="w-1", hat=["w-1","w-2","w-3"]
     await seedFullGameState(db, roomId, {
       lastAction,
       currentWordId: "w-1",
       hat: ["w-2", "w-3"],
     })
+    await seedWords(db, roomId)
 
     await undoLastAction(db, roomId, 2, true)
 
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
 
-    // lastAction cleared (RTDB strips null => undefined)
+    // lastAction cleared
     expect(gs.lastAction).toBeUndefined()
 
     // currentWordId set to lastAction.wordId (the undone word)
     expect(gs.currentWordId).toBe("w-5")
 
-    // hat contains both: old-remaining + restored wordIds (w-5 + currentWordId w-1 returned)
-    // Actually AC says: "returns both currentWordId and lastAction.wordId to hat"
+    // hat contains both: old-remaining + restored wordIds
     expect(gs.hat).toContain("w-1") // currentWordId restored
     expect(gs.hat).toContain("w-5") // lastAction.wordId restored
     expect(gs.hat).toHaveLength(4) // w-2, w-3 + w-1 + w-5
@@ -220,6 +235,32 @@ describe("undoLastAction", () => {
     expect(scoreSnap.val().round2).toBe(2) // 3 - 1
   })
 
+  it("type=guessed: restores currentWordText to action.wordId's word text", async () => {
+    const db = makeDatabase()
+    const roomId = `scoring-${Date.now()}-${idx++}`
+    const lastAction: LastAction = {
+      type: "guessed",
+      wordId: "w-5",
+      scoredTeamId: "team-1",
+      scoreWasPenalty: false,
+    }
+    await seedFullGameState(db, roomId, {
+      lastAction,
+      currentWordId: "w-1",
+      currentWordText: "apple", // stale text for w-1 (should be replaced)
+      hat: ["w-2", "w-3"],
+    })
+    await seedWords(db, roomId)
+
+    await undoLastAction(db, roomId, 2, true)
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+
+    // currentWordText must match the restored wordId's text from words/ node
+    expect(gs.currentWordText).toBe("guessed-five")
+  })
+
   it("type=skipped: reverses penalty if applied, returns word to hat, sets currentWordId to undone word (AC 11)", async () => {
     const db = makeDatabase()
     const roomId = `scoring-${Date.now()}-${idx++}`
@@ -227,27 +268,23 @@ describe("undoLastAction", () => {
       type: "skipped",
       wordId: "w-skipped",
       scoredTeamId: "team-1",
-      scoreWasPenalty: true, // penalty WAS applied
+      scoreWasPenalty: true,
     }
-    // seed: team-1 round2=3, currentWordId="w-0", hat=["w-2","w-3"]
     await seedFullGameState(db, roomId, {
       lastAction,
       currentWordId: "w-0",
       hat: ["w-2", "w-3"],
     })
+    await seedWords(db, roomId)
 
     await undoLastAction(db, roomId, 2, true)
 
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
 
-    // lastAction cleared (RTDB strips null => undefined)
     expect(gs.lastAction).toBeUndefined()
-
-    // currentWordId restored to skipped word
     expect(gs.currentWordId).toBe("w-skipped")
 
-    // w-skipped returned to hat, currentWordId also restored (both words return)
     expect(gs.hat).toContain("w-skipped")
     expect(gs.hat).toContain("w-2")
     expect(gs.hat).toContain("w-3")
@@ -256,7 +293,63 @@ describe("undoLastAction", () => {
 
     // Penalty reversed: team score +1 back
     const scoreSnap = await get(ref(db, `rooms/${roomId}/teams/team-1/roundScores`))
-    expect(scoreSnap.val().round2).toBe(4) // 3 + 1 (penalty reversed)
+    expect(scoreSnap.val().round2).toBe(4)
+  })
+
+  it("type=skipped: restores currentWordText to skipped word's text", async () => {
+    const db = makeDatabase()
+    const roomId = `scoring-${Date.now()}-${idx++}`
+    const lastAction: LastAction = {
+      type: "skipped",
+      wordId: "w-skipped",
+      scoredTeamId: "team-1",
+      scoreWasPenalty: true,
+    }
+    await seedFullGameState(db, roomId, {
+      lastAction,
+      currentWordId: "w-0",
+      currentWordText: "zero-word", // stale text for w-0 (should be replaced)
+      hat: ["w-2", "w-3"],
+    })
+    await seedWords(db, roomId)
+
+    await undoLastAction(db, roomId, 2, true)
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+
+    // currentWordText must be the skipped word's text, not w-0's text
+    expect(gs.currentWordText).toBe("skipped-word")
+  })
+
+  it("currentWordId present in hat after undo (current word returns to hat, not lost)", async () => {
+    const db = makeDatabase()
+    const roomId = `scoring-${Date.now()}-${idx++}`
+    const lastAction: LastAction = {
+      type: "guessed",
+      wordId: "w-5",
+      scoredTeamId: "team-1",
+      scoreWasPenalty: false,
+    }
+    // Simulate: explainer was looking at w-1, guessed it, then w-2 was drawn.
+    // After undo: w-1 must return to hat AND w-5 (action.wordId) becomes currentWordId.
+    await seedFullGameState(db, roomId, {
+      lastAction,
+      currentWordId: "w-1",
+      currentWordText: "apple",
+      hat: ["w-2", "w-3"],
+    })
+    await seedWords(db, roomId)
+
+    await undoLastAction(db, roomId, 2, true)
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+
+    // w-1 (the word the explainer was currently on) must be in the hat
+    expect(gs.hat).toContain("w-1")
+    // w-5 (the undone action's word) becomes the NEW currentWordId
+    expect(gs.currentWordId).toBe("w-5")
   })
 
   it("type=skipped with scoreWasPenalty=false: no score adjustment", async () => {
@@ -273,14 +366,13 @@ describe("undoLastAction", () => {
       currentWordId: "w-x",
       hat: ["w-1", "w-2"],
     })
+    await seedWords(db, roomId)
 
     await undoLastAction(db, roomId, 2, true)
 
-    // Score unchanged
     const scoreSnap = await get(ref(db, `rooms/${roomId}/teams/team-1/roundScores`))
     expect(scoreSnap.val().round2).toBe(3) // unchanged
 
-    // Hat contains currentWordId restored + lastAction.wordId + remaining
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
     expect(gs.hat).toContain("w-no-penalty")
@@ -308,14 +400,13 @@ describe("undoLastAction", () => {
       scoredTeamId: "team-1",
       scoreWasPenalty: false,
     }
-    // team-1 round2 = 0
     await set(ref(db, `rooms/${roomId}/teams/team-1/roundScores/round2`), 0)
     await seedFullGameState(db, roomId, {
       lastAction,
       currentWordId: "w-current",
       hat: ["w-1"],
     })
-    // Set score to 0 after seed (seed defaults round2=3)
+    await seedWords(db, roomId)
     await set(ref(db, `rooms/${roomId}/teams/team-1/roundScores/round2`), 0)
 
     await undoLastAction(db, roomId, 2, true)
@@ -338,10 +429,10 @@ describe("undoLastAction", () => {
       currentWordId: "w-c",
       hat: ["w-1"],
     })
+    await seedWords(db, roomId)
 
     await undoLastAction(db, roomId, 2, true)
 
-    // Second call should throw
     await expect(undoLastAction(db, roomId, 2, true)).rejects.toThrow(UndoNotAvailableError)
   })
 })
