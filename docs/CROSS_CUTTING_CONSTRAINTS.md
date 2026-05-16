@@ -96,11 +96,17 @@ Each phase leaves state that the next phase reads. Breaking these contracts caus
 
 ### Phase 3 → Phase 4
 
-- `endRound()` in `turn.ts` must correctly:
+- `advanceTurn()` (called on every `post_turn`, including when hat is empty) must:
+  - **Always rotate** to next team and advance `currentPlayerIndex` for the outgoing team
+  - Write `phase: 'round_end'` (hat empty) or `phase: 'waiting_start'` (hat not empty)
+  - Write `currentTeamId` and `currentExplainerId` for the next team — never skip rotation
+- `endRound()` (called when `phase === 'round_end'`) must:
   - Refill `hat` from original word IDs (all words from `/rooms/{id}/words/`)
   - Increment `round`
-  - **Not** reset `currentTeamId` or `currentPlayerIndex` — turn order continues
-  - Reset `currentWordId: null`, `lastAction: null`
+  - **Not** reset `currentTeamId` or `currentExplainerId` — `advanceTurn` already set them
+  - Reset `currentWordId: null`, `lastAction: null`, `wordsGuessedThisTurn: 0`
+  - Write `phase: 'waiting_start'`
+- **Rotation invariant**: Team rotation happens in `advanceTurn`, not `endRound`. Never call `advanceTurn` again after `round_end` — the team for the new round's first turn is already locked in the `round_end` state.
 - `teams/{id}/roundScores/round{N}` must be accurately accumulated throughout Phase 3 for Phase 4 scoreboard totals.
 - `playerStats/{playerId}/wordsExplained` must be updated on every successful Guessed action in Phase 3.
 

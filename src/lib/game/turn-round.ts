@@ -25,7 +25,9 @@ function shuffle<T>(arr: T[]): T[] {
  *   - Increments round.
  *   - Writes phase: 'waiting_start', currentWordId=null, lastAction=null,
  *     wordsGuessedThisTurn=0.
- *   - Preserves currentTeamId, currentExplainerId, playerStats.
+ *   - Preserves currentTeamId, currentExplainerId (advanceTurn already
+ *     rotated to next team before writing round_end).
+ *   - Preserves playerStats.
  *   - Leaves status unchanged ('playing').
  *
  * When round === 3:

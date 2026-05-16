@@ -325,12 +325,26 @@ describe("advanceTurn", () => {
     expect(gs.wordsGuessedThisTurn).toBe(0)
   })
 
-  // AC 5
-  it("after hat empty: writes phase='round_end', preserves turn order", async () => {
+  // AC 5 (FIXED): hat empty → rotates to next team, then writes round_end
+  it("after hat empty: rotates to next team, advances current team's index, writes phase='round_end'", async () => {
     const db = makeDatabase()
     const roomId = `test-${Date.now()}-${roomIdx++}`
 
     await seedAdvanceTurn(db, roomId, {
+      teams: {
+        "team-1": {
+          name: "Team 1",
+          playerOrder: ["player-0", "player-2"],
+          currentPlayerIndex: 0,
+          roundScores: { round1: 0, round2: 0, round3: 0 },
+        },
+        "team-2": {
+          name: "Team 2",
+          playerOrder: ["player-1", "player-3"],
+          currentPlayerIndex: 0,
+          roundScores: { round1: 0, round2: 0, round3: 0 },
+        },
+      },
       gameState: {
         round: 1,
         currentTeamId: "team-1",
@@ -347,15 +361,24 @@ describe("advanceTurn", () => {
 
     await advanceTurn(db, roomId)
 
+    // team-1's index advances
+    const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
+    const teams = teamsSnap.val()
+    expect(teams["team-1"].currentPlayerIndex).toBe(1)
+
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
     expect(gs.phase).toBe("round_end")
-    // Turn order preserved — currentTeamId and currentPlayerIndex unchanged from original
-    expect(gs.currentTeamId).toBe("team-1")
-    expect(gs.currentExplainerId).toBe("player-0") // unchanged because we don't advance when hat empty
+    // Rotation happened — next team set for new round
+    expect(gs.currentTeamId).toBe("team-2")
+    expect(gs.currentExplainerId).toBe("player-1") // team-2's currentPlayerIndex (0)
+    expect(gs.currentWordId).toBeFalsy()
+    expect(gs.lastAction).toBeFalsy()
+    expect(gs.wordsGuessedThisTurn).toBe(0)
   })
 
-  it("after hat empty: does NOT update currentPlayerIndex or currentTeamId", async () => {
+  // AC 5 (FIXED): hat empty + last player — wraps index to 0
+  it("after hat empty with last player of team: wraps index and rotates to next team", async () => {
     const db = makeDatabase()
     const roomId = `test-${Date.now()}-${roomIdx++}`
 
@@ -364,12 +387,12 @@ describe("advanceTurn", () => {
         "team-1": {
           name: "Team 1",
           playerOrder: ["player-0", "player-2"],
-          currentPlayerIndex: 0,
+          currentPlayerIndex: 1, // last player
           roundScores: { round1: 0, round2: 0, round3: 0 },
         },
         "team-2": {
           name: "Team 2",
-          playerOrder: ["player-1"],
+          playerOrder: ["player-1", "player-3"],
           currentPlayerIndex: 0,
           roundScores: { round1: 0, round2: 0, round3: 0 },
         },
@@ -377,7 +400,7 @@ describe("advanceTurn", () => {
       gameState: {
         round: 1,
         currentTeamId: "team-1",
-        currentExplainerId: "player-0",
+        currentExplainerId: "player-2",
         phase: "post_turn",
         hat: [],
         currentWordId: null,
@@ -392,9 +415,60 @@ describe("advanceTurn", () => {
 
     const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
     const teams = teamsSnap.val()
-    // Indices unchanged
-    expect(teams["team-1"].currentPlayerIndex).toBe(0)
-    expect(teams["team-2"].currentPlayerIndex).toBe(0)
+    expect(teams["team-1"].currentPlayerIndex).toBe(0) // wrapped
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+    expect(gs.phase).toBe("round_end")
+    expect(gs.currentTeamId).toBe("team-2")
+    expect(gs.currentExplainerId).toBe("player-1")
+    expect(gs.currentWordId).toBeFalsy()
+    expect(gs.lastAction).toBeFalsy()
+    expect(gs.wordsGuessedThisTurn).toBe(0)
+  })
+
+  // AC 5 edge: single team — wraps to same team, next explainer
+  it("after hat empty with single team: wraps to same team with next player", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    await seedAdvanceTurn(db, roomId, {
+      teams: {
+        "team-1": {
+          name: "Team 1",
+          playerOrder: ["player-0", "player-2"],
+          currentPlayerIndex: 0,
+          roundScores: { round1: 0, round2: 0, round3: 0 },
+        },
+      },
+      gameState: {
+        round: 1,
+        currentTeamId: "team-1",
+        currentExplainerId: "player-0",
+        phase: "post_turn",
+        hat: [],
+        currentWordId: null,
+        wordsGuessedThisTurn: 1,
+        lastAction: null,
+        timerDuration: 60,
+        playerStats: {},
+      },
+    })
+
+    await advanceTurn(db, roomId)
+
+    const teamsSnap = await get(ref(db, `rooms/${roomId}/teams`))
+    const teams = teamsSnap.val()
+    expect(teams["team-1"].currentPlayerIndex).toBe(1)
+
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+    expect(gs.phase).toBe("round_end")
+    expect(gs.currentTeamId).toBe("team-1") // only one team
+    expect(gs.currentExplainerId).toBe("player-2")
+    expect(gs.currentWordId).toBeFalsy()
+    expect(gs.lastAction).toBeFalsy()
+    expect(gs.wordsGuessedThisTurn).toBe(0)
   })
 
   // Edge: single player team
