@@ -43,6 +43,7 @@ let addWord: typeof import("./words").addWord
 let submitWords: typeof import("./words").submitWords
 let getPlayerWords: typeof import("./words").getPlayerWords
 let advanceToLobby: typeof import("./words").advanceToLobby
+let updateWord: typeof import("./words").updateWord
 
 beforeAll(async () => {
   const mod = await import("./words")
@@ -50,6 +51,7 @@ beforeAll(async () => {
   submitWords = mod.submitWords
   getPlayerWords = mod.getPlayerWords
   advanceToLobby = mod.advanceToLobby
+  updateWord = mod.updateWord
 })
 
 describe("addWord", () => {
@@ -325,10 +327,167 @@ describe("advanceToLobby", () => {
   //     { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
   //     ADMIN_UID,
   //   )
-
+  //
   //   const playerDb = emulatorDb(PLAYER_1_UID)
   //   await expect(advanceToLobby(playerDb as unknown as Database, roomId)).rejects.toThrow(
   //     /permission_denied/i,
   //   )
   // })
+})
+
+describe("updateWord", () => {
+  it("updates word text for a word owned by the player", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const playerDb = emulatorDb(PLAYER_1_UID)
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+
+    const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "original")
+
+    await updateWord(playerDb as unknown as Database, roomId, wordId, PLAYER_1_UID, "modified")
+
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.text).toBe("modified")
+  })
+
+  it("rejects empty string with WordValidationError before writing", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const playerDb = emulatorDb(PLAYER_1_UID)
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+
+    const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "original")
+
+    await expect(
+      updateWord(playerDb as unknown as Database, roomId, wordId, PLAYER_1_UID, ""),
+    ).rejects.toThrow("Word cannot be empty")
+
+    // Verify RTDB unchanged
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.text).toBe("original")
+  })
+
+  it("rejects whitespace-only string with WordValidationError", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const playerDb = emulatorDb(PLAYER_1_UID)
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+
+    const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "original")
+
+    await expect(
+      updateWord(playerDb as unknown as Database, roomId, wordId, PLAYER_1_UID, "   "),
+    ).rejects.toThrow("Word cannot be empty")
+
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.text).toBe("original")
+  })
+
+  it("rejects text longer than 50 characters with WordValidationError", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const playerDb = emulatorDb(PLAYER_1_UID)
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+
+    const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "original")
+    const longWord = "a".repeat(51)
+
+    await expect(
+      updateWord(playerDb as unknown as Database, roomId, wordId, PLAYER_1_UID, longWord),
+    ).rejects.toThrow("Word must be 50 characters or fewer")
+
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.text).toBe("original")
+  })
+
+  it("does not change addedBy field", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const playerDb = emulatorDb(PLAYER_1_UID)
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+
+    const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "original")
+
+    await updateWord(playerDb as unknown as Database, roomId, wordId, PLAYER_1_UID, "new-text")
+
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.addedBy).toBe(PLAYER_1_UID)
+  })
+
+  it("allows same text as original (no-op update)", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const playerDb = emulatorDb(PLAYER_1_UID)
+    await joinRoom(playerDb as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+
+    const wordId = await addWord(playerDb as unknown as Database, roomId, PLAYER_1_UID, "same")
+
+    await expect(
+      updateWord(playerDb as unknown as Database, roomId, wordId, PLAYER_1_UID, "same"),
+    ).resolves.toBeUndefined()
+
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.text).toBe("same")
+  })
+
+  it("rejects update when word does not belong to player", async () => {
+    const adminDb = emulatorDb(ADMIN_UID)
+    const roomId = await createRoom(
+      adminDb as unknown as Database,
+      { wordCount: 3, numTeams: 2, skipPenalty: false, timerDuration: 60 },
+      ADMIN_UID,
+    )
+
+    const db1 = emulatorDb(PLAYER_1_UID)
+    const db2 = emulatorDb(PLAYER_2_UID)
+    await joinRoom(db1 as unknown as Database, roomId, PLAYER_1_UID, "Alice", "red", false)
+    await joinRoom(db2 as unknown as Database, roomId, PLAYER_2_UID, "Bob", "blue", false)
+
+    const wordId = await addWord(db1 as unknown as Database, roomId, PLAYER_1_UID, "alice-word")
+
+    await expect(
+      updateWord(db2 as unknown as Database, roomId, wordId, PLAYER_2_UID, "bob-trying"),
+    ).rejects.toThrow("Word does not belong to this player")
+
+    // Verify RTDB unchanged
+    const snap = await adminDb.ref(`rooms/${roomId}/words/${wordId}`).once("value")
+    const word = snap.val() as Word
+    expect(word.text).toBe("alice-word")
+  })
 })
