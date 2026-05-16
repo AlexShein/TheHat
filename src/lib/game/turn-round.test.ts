@@ -104,7 +104,7 @@ describe("endRound", () => {
     expect(gs.hat).toContain("word-b")
     expect(gs.hat).toContain("word-c")
     expect(gs.hat).toContain("word-d")
-    // Turn order preserved
+    // Turn order preserved — advanceTurn already rotated before writing round_end, endRound keeps it
     expect(gs.currentTeamId).toBe("team-2")
     expect(gs.currentExplainerId).toBe("player-1")
     // Clean slate fields

@@ -263,6 +263,35 @@ describe("handleTimerExpiry", () => {
     expect(gs.phase).toBe("explaining") // unchanged — timer paused
   })
 
+  it("when timeRemaining<=0, wordDisplayed <=2s: returns word to hat, writes phase='post_turn', currentWordId=null", async () => {
+    const db = makeDatabase()
+    const roomId = `test-${Date.now()}-${roomIdx++}`
+
+    const sixtyOneSecAgo = Date.now() - 61000
+    await seedGameState(db, roomId, {
+      timerStartedAt: sixtyOneSecAgo,
+      timerDuration: 60000,
+      currentWordId: "word-1",
+      hat: ["word-2", "word-3"], // word-1 already drawn, NOT in hat
+    })
+
+    // word displayed only 500ms ago — too fresh
+    const wordDisplayedAt = Date.now() - 500
+
+    await handleTimerExpiry(db, roomId, sixtyOneSecAgo, 60000, null, null, "word-1", wordDisplayedAt)
+
+    const snap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = snap.val()
+    expect(gs.phase).toBe("post_turn")
+    // Word must be returned to hat
+    expect(gs.hat).toContain("word-1")
+    expect(gs.hat).toContain("word-2")
+    expect(gs.hat).toContain("word-3")
+    expect(gs.hat.length).toBe(3)
+    // currentWordId cleared (RTDB removes explicit null)
+    expect(gs.currentWordId).toBeFalsy()
+  })
+
   it("when timeRemaining > 0: does nothing", async () => {
     const db = makeDatabase()
     const roomId = `test-${Date.now()}-${roomIdx++}`

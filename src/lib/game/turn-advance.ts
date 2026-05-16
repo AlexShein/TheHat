@@ -10,7 +10,9 @@ import type { GameState, Team } from "$lib/db-types"
  * Writes: phase ('waiting_start' or 'round_end'), currentTeamId, currentExplainerId,
  *        currentWordId=null, lastAction=null, wordsGuessedThisTurn=0.
  *
- * If hat.length === 0, writes phase: 'round_end' without advancing turn order.
+ * When hat is empty: still rotates team and player, writes phase='round_end'.
+ * This ensures the next round starts with a different team, preventing skip.
+ *
  * Reads teams/{teamId}/playerOrder and teams/{teamId}/currentPlayerIndex from RTDB.
  */
 export async function advanceTurn(db: Database, roomId: string): Promise<void> {
@@ -27,19 +29,7 @@ export async function advanceTurn(db: Database, roomId: string): Promise<void> {
   if (gs.phase !== "post_turn") return
 
   const teams = teamsSnap.val() as Record<string, Team>
-
   const hat: string[] = gs.hat ?? []
-
-  // Hat empty → round_end, do NOT advance turn order (AC 5)
-  if (hat.length === 0) {
-    await update(ref(db, `rooms/${roomId}/gameState`), {
-      phase: "round_end",
-      currentWordId: null,
-      lastAction: null,
-      wordsGuessedThisTurn: 0,
-    })
-    return
-  }
 
   // Collect sorted team IDs (consistent ordering: team-1, team-2, ...)
   const teamIds = Object.keys(teams).sort()
@@ -64,17 +54,23 @@ export async function advanceTurn(db: Database, roomId: string): Promise<void> {
   const nextTeam = teams[nextTeamId]
   if (!nextTeam) return
 
-  // Use next team's existing currentPlayerIndex to pick explainer
-  const nextTeamIndex = nextTeam.currentPlayerIndex ?? 0
+  // Use next team's existing currentPlayerIndex to pick explainer.
+  // Edge case: when only one team exists, nextTeamId === currentTeamId —
+  // use the newly computed index, not the stale currentPlayerIndex.
+  const nextTeamIndex =
+    nextTeamId === currentTeamId ? nextCurrentTeamIndex : (nextTeam.currentPlayerIndex ?? 0)
   const nextExplainerId = nextTeam.playerOrder?.[nextTeamIndex]
   if (!nextExplainerId) return
 
   // Save current team's advanced index for when it gets next turn
   await set(ref(db, `rooms/${roomId}/teams/${currentTeamId}/currentPlayerIndex`), nextCurrentTeamIndex)
 
+  // Decide phase: round_end if hat empty, waiting_start otherwise
+  const nextPhase = hat.length === 0 ? "round_end" : "waiting_start"
+
   // Write gameState — use update() for targeted writes, avoids stale ...gs spread
   await update(ref(db, `rooms/${roomId}/gameState`), {
-    phase: "waiting_start",
+    phase: nextPhase,
     currentTeamId: nextTeamId,
     currentExplainerId: nextExplainerId,
     currentWordId: null,

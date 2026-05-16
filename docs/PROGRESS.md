@@ -230,3 +230,24 @@ Scoreboard renders on `status === 'finished'` with team totals (sum of 3 roundSc
 | `src/lib/game/turn-round.test.ts` | MODIFY — 9 restart tests |
 | `src/lib/components/phases/Scoreboard.svelte` | NEW — final scoreboard UI |
 | `src/routes/room/[roomId]/+page.svelte` | MODIFY — wire Scoreboard, keep stores alive during finished status |
+
+---
+
+## Bug Fix — Word Lost on Timer Expiry ✅
+
+Fixed `handleTimerExpiry()` discarding `currentWordId` without returning word to hat when timer expires within 2s of word display — word now returned via `returnWord()` transaction before phase transition to `post_turn`. All 198 tests pass, lint clean.
+| `src/lib/game/turn-expiry.ts` | MODIFY — add returnWord() call before discarding currentWordId |
+| `src/lib/game/turn-expiry.test.ts` | MODIFY — test word reappears in hat after fresh-word timer expiry |
+
+---
+
+## Bug Fix — Turn Skip on Round End ✅
+
+Root cause: `advanceTurn()` skipped team rotation when hat was empty (wrote `phase: 'round_end'` without rotating `currentTeamId`/`currentExplainerId`). `endRound()` also didn't advance turn order. In two-team setup, team that emptied the hat kept `currentTeamId`, then `endRound` refilled hat and wrote `waiting_start` with same team — same team played again, skipping the other team for an entire round.
+
+Fix: `advanceTurn()` always rotates team and player index, even when hat is empty — writes `phase: 'round_end'` with the _next_ team's turn order already set. `endRound()` preserves that rotation (doesn't reset `currentTeamId`). Single-team edge case also fixed (stale `currentPlayerIndex` read). Updated `docs/CROSS_CUTTING_CONSTRAINTS.md` with explicit rotation invariant. All 199 tests pass, lint clean.
+| `src/lib/game/turn-advance.ts` | MODIFY — rotate even when hat empty, single-team stale index fix |
+| `src/lib/game/turn-advance.test.ts` | MODIFY — assert rotation on hat empty (AC 5 boundary) |
+| `src/lib/game/turn-round.ts` | MODIFY — update comment to clarify rotation lives in advanceTurn |
+| `src/lib/game/turn-round.test.ts` | MODIFY — update comment on preserved rotation |
+| `docs/CROSS_CUTTING_CONSTRAINTS.md` | MODIFY — add rotation invariant to Phase 3→4 dependencies |
