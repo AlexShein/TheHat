@@ -1,4 +1,4 @@
-import { ref, set, get, push } from "firebase/database"
+import { ref, set, get, push, type DataSnapshot } from "firebase/database"
 import type { Database } from "firebase/database"
 import type { Word, RoomConfig } from "$lib/db-types"
 
@@ -40,6 +40,50 @@ export async function addWord(db: Database, roomId: string, playerId: string, te
   })
 
   return wordId
+}
+
+/**
+ * Updates the text of an existing word at /rooms/{roomId}/words/{wordId}.
+ * Validates text with same rules as addWord. Verifies addedBy matches playerId —
+ * throws if word belongs to another player. Reads existing node first to check ownership.
+ * No-op if newText equals existing text (still validates, writes idempotently).
+ * Throws WordValidationError for empty/whitespace/too-long input.
+ */
+export async function updateWord(
+  db: Database,
+  roomId: string,
+  wordId: string,
+  playerId: string,
+  newText: string,
+): Promise<void> {
+  const cleanText = validateWordText(newText)
+
+  const wordRef = ref(db, `rooms/${roomId}/words/${wordId}`)
+  const snap: DataSnapshot = await get(wordRef)
+
+  if (!snap.exists()) {
+    throw new Error("Word not found")
+  }
+
+  const existing = snap.val() as unknown
+  if (typeof existing !== "object" || existing === null) {
+    throw new Error("Word data is malformed")
+  }
+
+  const word = existing as Record<string, unknown>
+  if (typeof word.text === "string" && word.text === cleanText) {
+    return // no-op: same text
+  }
+
+  // Ownership check — application-level enforcement
+  if (word.addedBy !== playerId) {
+    throw new Error("Word does not belong to this player")
+  }
+
+  await set(wordRef, {
+    text: cleanText,
+    addedBy: word.addedBy,
+  })
 }
 
 /**
