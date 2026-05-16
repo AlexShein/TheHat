@@ -69,15 +69,15 @@
   }
 </script>
 
-<form onsubmit={handleSubmit} class="space-y-5">
-  <h2 class="text-xl font-semibold text-center">Create Game Room</h2>
+<form onsubmit={handleSubmit} class="space-y-5 display-flex">
+  <h2 class="font-display text-headline-md text-on-surface text-center">Create Game Room</h2>
 
   <label class="block" for="num-teams">
-    <span class="text-sm text-gray-700">Number of Teams</span>
+    <span class="text-body-md text-on-surface">Number of Teams</span>
     <div class="flex items-center gap-2 mt-1">
       <button
         type="button"
-        class="min-h-[44px] min-w-[44px] rounded border border-gray-300 text-lg"
+        class="min-h-[44px] min-w-[44px] rounded border border-outline-variant bg-surface-container text-body-lg text-on-surface text-center"
         onclick={() => (numTeams = clamp(numTeams - 1, MIN_TEAMS, MAX_TEAMS))}
         aria-label="Decrease teams"
       >−</button>
@@ -87,11 +87,11 @@
         min={MIN_TEAMS}
         max={MAX_TEAMS}
         bind:value={numTeams}
-        class="w-16 text-center rounded border border-gray-300 px-2 py-2 min-h-[44px]"
+        class="w-16 text-center rounded border border-outline-variant bg-surface-container px-2 py-2 min-h-[44px] text-body-md text-on-surface"
       />
       <button
         type="button"
-        class="min-h-[44px] min-w-[44px] rounded border border-gray-300 text-lg"
+        class="min-h-[44px] min-w-[44px] rounded border border-outline-variant bg-surface-container text-body-lg text-on-surface"
         onclick={() => (numTeams = clamp(numTeams + 1, MIN_TEAMS, MAX_TEAMS))}
         aria-label="Increase teams"
       >+</button>
@@ -99,11 +99,11 @@
   </label>
 
   <label class="block" for="word-count">
-    <span class="text-sm text-gray-700">Words Per Player</span>
+    <span class="text-body-md text-on-surface">Words Per Player</span>
     <div class="flex items-center gap-2 mt-1">
       <button
         type="button"
-        class="min-h-[44px] min-w-[44px] rounded border border-gray-300 text-lg"
+        class="min-h-[44px] min-w-[44px] rounded border border-outline-variant bg-surface-container text-body-lg text-on-surface"
         onclick={() => (wordCount = clamp(wordCount - 1, MIN_WORDS, MAX_WORDS))}
         aria-label="Decrease words per player"
       >−</button>
@@ -113,11 +113,11 @@
         min={MIN_WORDS}
         max={MAX_WORDS}
         bind:value={wordCount}
-        class="w-16 text-center rounded border border-gray-300 px-2 py-2 min-h-[44px]"
+        class="w-16 text-center rounded border border-outline-variant bg-surface-container px-2 py-2 min-h-[44px] text-body-md text-on-surface"
       />
       <button
         type="button"
-        class="min-h-[44px] min-w-[44px] rounded border border-gray-300 text-lg"
+        class="min-h-[44px] min-w-[44px] rounded border border-outline-variant bg-surface-container text-body-lg text-on-surface"
         onclick={() => (wordCount = clamp(wordCount + 1, MIN_WORDS, MAX_WORDS))}
         aria-label="Increase words per player"
       >+</button>
@@ -125,13 +125,13 @@
   </label>
 
   <label class="block" for="timer-duration">
-    <span class="text-sm text-gray-700">Timer Duration (seconds)</span>
+    <span class="text-body-md text-on-surface">Timer Duration (seconds)</span>
     <input
       id="timer-duration"
       type="number"
       min={10}
       bind:value={timerDuration}
-      class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 min-h-[44px]"
+      class="mt-1 block w-full rounded border border-outline-variant bg-surface-container px-3 py-2 min-h-[44px] text-body-md text-on-surface"
     />
   </label>
 
@@ -139,19 +139,19 @@
     <input
       type="checkbox"
       bind:checked={skipPenalty}
-      class="h-5 w-5 rounded border-gray-300"
+      class="h-5 w-5 rounded border-outline-variant"
     />
-    <span class="text-sm text-gray-700">Enable Skip Penalty</span>
+    <span class="text-body-md text-on-surface">Enable Skip Penalty</span>
   </label>
 
   {#if error}
-    <p class="text-sm text-red-600" role="alert">{error}</p>
+    <p class="text-body-md text-error" role="alert">{error}</p>
   {/if}
 
   <button
     type="submit"
     disabled={creating}
-    class="w-full rounded bg-green-600 px-4 py-3 text-white font-medium min-h-[44px] disabled:opacity-50"
+    class="w-full rounded bg-primary text-on-primary font-display font-semibold py-3 min-h-[44px] disabled:opacity-50 text-body-md"
     aria-label="Create room"
   >
     {creating ? "Creating..." : "Create Room"}

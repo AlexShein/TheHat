@@ -1,28 +1,34 @@
 <script lang="ts">
+  import { getTeamColorClasses } from "$lib/team-colors"
+
   let {
     teamName,
+    teamId,
     score,
     isActive,
   }: {
     teamName: string
+    teamId: string
     score: number
     isActive: boolean
   } = $props()
+
+  const tc = $derived(getTeamColorClasses(teamId))
 </script>
 
 <div
-  class="flex items-center justify-between rounded px-3 py-2 min-h-[44px] {isActive
-    ? 'bg-blue-100 ring-2 ring-blue-400'
-    : 'bg-white border border-gray-200'}"
+  class="flex items-center justify-between rounded border-l-8 px-3 py-2 min-h-[44px] box-border {isActive
+    ? tc.activeBg + ' ' + tc.activeBorder
+    : 'bg-surface-container border-outline-variant'}"
   aria-label="Team {teamName}: {score} points{isActive ? ', active' : ''}"
 >
   <span
-    class="font-semibold text-sm {isActive ? 'text-blue-700' : 'text-gray-700'}"
+    class="font-display font-semibold text-body-md {isActive ? tc.activeText : 'text-on-surface-variant'}"
   >
     {teamName}
   </span>
   <span
-    class="text-lg font-mono tabular-nums {isActive ? 'text-blue-800' : 'text-gray-600'}"
+    class="font-display text-headline-md tabular-nums {isActive ? tc.stripe.replace('border-', 'text-') : 'text-on-surface'}"
   >
     {score}
   </span>

@@ -35,13 +35,13 @@
 </script>
 
 <div class="space-y-5">
-  <h2 class="text-xl font-semibold text-center">Room Created</h2>
+  <h2 class="font-display text-headline-md text-on-surface text-center">Room Created</h2>
 
-  <div class="bg-gray-100 rounded p-4 text-center">
-    <p class="text-sm text-gray-600">Room ID</p>
-    <p class="text-2xl font-mono font-bold tracking-wider mt-1">{roomId}</p>
+  <div class="bg-surface-container border border-outline-variant rounded p-4 text-center">
+    <p class="text-label-caps text-on-surface-variant">Room ID</p>
+    <p class="text-display font-display tracking-wider mt-1">{roomId}</p>
     <button
-      class="mt-2 text-sm text-blue-600 underline min-h-[44px]"
+      class="mt-2 text-body-md text-secondary underline min-h-[44px]"
       onclick={copyRoomId}
       aria-label="Copy room ID to clipboard"
     >
@@ -49,11 +49,11 @@
     </button>
   </div>
 
-  <div class="bg-gray-100 rounded p-4">
-    <p class="text-sm text-gray-600 text-center">Invite Link</p>
-    <p class="text-xs font-mono break-all mt-1 text-center">{inviteLink}</p>
+  <div class="bg-surface-container border border-outline-variant rounded p-4">
+    <p class="text-label-caps text-on-surface-variant text-center">Invite Link</p>
+    <p class="text-body-md break-all mt-1 text-center">{inviteLink}</p>
     <button
-      class="block mx-auto mt-2 text-sm text-blue-600 underline min-h-[44px]"
+      class="block mx-auto mt-2 text-body-md text-secondary underline min-h-[44px]"
       onclick={copyInviteLink}
       aria-label="Copy invite link to clipboard"
     >
@@ -62,18 +62,18 @@
   </div>
 
   <div class="flex flex-col items-center">
-    <p class="text-sm text-gray-600 mb-2">Scan to join</p>
+    <p class="text-body-md text-on-surface-variant mb-2">Scan to join</p>
     <img
       src={qrUrl}
       alt="QR code for invite link"
-      class="border border-gray-300 rounded"
+      class="border border-outline-variant rounded"
       width={180}
       height={180}
     />
   </div>
 
   <button
-    class="w-full rounded bg-blue-600 px-4 py-3 text-white font-medium min-h-[44px]"
+    class="w-full rounded bg-primary text-on-primary font-display font-semibold py-3 min-h-[44px] text-body-md"
     onclick={onStartPlaying}
     aria-label="Start playing, enter the room"
   >

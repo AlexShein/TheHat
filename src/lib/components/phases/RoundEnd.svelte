@@ -36,14 +36,14 @@
 </script>
 
 <div class="text-center p-6">
-  <p class="text-xl font-semibold text-gray-700 mb-4">Round {round} Complete</p>
+  <p class="font-display text-headline-md text-on-surface mb-4">Round {round} Complete</p>
 
   <!-- Cumulative team scores -->
   <div class="flex gap-2 mb-6">
     {#each Object.entries(teams) as [tid, team] (tid)}
       {@const total = (team.roundScores.round1 ?? 0) + (team.roundScores.round2 ?? 0) + (team.roundScores.round3 ?? 0)}
       <div class="flex-1">
-        <TeamScore teamName={team.name} score={total} isActive={false} />
+        <TeamScore teamName={team.name} teamId={tid} score={total} isActive={false} />
       </div>
     {/each}
   </div>
@@ -53,9 +53,9 @@
       <button
         onclick={handleClick}
         disabled={loading}
-        class="min-h-11 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg
-               hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-               transition-colors"
+        class="min-h-11 px-6 py-3 bg-primary text-on-primary font-display font-semibold rounded
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-colors text-body-md"
       >
         {loading ? "Loading…" : "See Results"}
       </button>
@@ -63,14 +63,14 @@
       <button
         onclick={handleClick}
         disabled={loading}
-        class="min-h-11 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg
-               hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-               transition-colors"
+        class="min-h-11 px-6 py-3 bg-primary text-on-primary font-display font-semibold rounded
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-colors text-body-md"
       >
         {loading ? "Loading…" : "Next Round"}
       </button>
     {/if}
   {:else}
-    <p class="text-sm text-gray-500">Waiting for the game admin to continue…</p>
+    <p class="text-body-md text-on-surface-variant">Waiting for the game admin to continue…</p>
   {/if}
 </div>

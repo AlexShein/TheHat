@@ -153,8 +153,8 @@
 </script>
 
 <div class="space-y-5">
-  <h2 class="text-xl font-semibold text-center">Enter Your Words</h2>
-  <p class="text-sm text-gray-600 text-center">
+  <h2 class="font-display text-headline-md text-on-surface text-center">Enter Your Words</h2>
+  <p class="text-body-md text-on-surface-variant text-center">
     {#if wordCount > myWordCount}
       Add {wordCount - myWordCount} more word{wordCount - myWordCount !== 1 ? "s" : ""}
     {:else if wordCount > 0}
@@ -163,7 +163,7 @@
   </p>
 
   {#if error}
-    <p class="text-sm text-red-600 text-center" role="alert">{error}</p>
+    <p class="text-body-md text-error text-center" role="alert">{error}</p>
   {/if}
 
   {#if !submitted}
@@ -176,14 +176,14 @@
         disabled={inputDisabled}
         onkeydown={handleKeydown}
         maxlength={50}
-        class="flex-1 rounded border border-gray-300 px-3 py-2 min-h-[44px] disabled:bg-gray-100"
+        class="flex-1 rounded border border-outline-variant px-3 py-2 min-h-[44px] disabled:bg-surface-container text-body-md"
         placeholder="Type a word…"
         aria-label="Enter a word"
       />
       <button
         onclick={handleAdd}
         disabled={inputDisabled || inputText.trim().length === 0}
-        class="rounded bg-blue-600 px-4 min-h-[44px] text-white font-medium disabled:opacity-50"
+        class="rounded bg-primary px-4 min-h-[44px] text-on-primary font-display font-semibold disabled:opacity-50 text-body-md"
         aria-label="Add word"
       >
         Add
@@ -194,7 +194,7 @@
   {#if myWordCount > 0}
     <ul class="space-y-1" aria-label="Your submitted words">
       {#each Object.entries(myWords) as [wordId, word] (wordId)}
-        <li class="rounded border border-gray-200 px-3 py-2 text-sm bg-gray-50 flex items-center gap-2 min-h-[44px]">
+        <li class="rounded border border-outline-variant px-3 py-2 text-body-md bg-surface-container flex items-center gap-2 min-h-[44px]">
           {#if editingWordId === wordId}
             <label class="sr-only" for="edit-word-input">Edit word</label>
             <input
@@ -203,13 +203,13 @@
               bind:value={editText}
               maxlength={50}
               onkeydown={handleEditKeydown}
-              class="flex-1 rounded border border-blue-400 px-2 py-1 bg-white min-h-[44px]"
+              class="flex-1 rounded border border-secondary px-2 py-1 bg-surface-container-lowest min-h-[44px] text-body-md"
               aria-label="Edit word"
             />
             <button
               onclick={confirmEdit}
               disabled={editText.trim().length === 0}
-              class="shrink-0 rounded bg-green-600 text-white w-[44px] h-[44px] flex items-center justify-center disabled:opacity-50"
+              class="shrink-0 rounded bg-primary text-on-primary w-[44px] h-[44px] flex items-center justify-center disabled:opacity-50"
               aria-label="Confirm edit"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -218,7 +218,7 @@
             </button>
             <button
               onclick={cancelEdit}
-              class="shrink-0 rounded bg-gray-300 text-gray-700 w-[44px] h-[44px] flex items-center justify-center"
+              class="shrink-0 rounded bg-surface-container-high text-on-surface w-[44px] h-[44px] flex items-center justify-center"
               aria-label="Cancel edit"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -247,7 +247,7 @@
   {#if isComplete && !submitted}
     <button
       onclick={handleSubmit}
-      class="w-full rounded bg-green-600 px-4 py-3 text-white font-medium min-h-[44px]"
+      class="w-full rounded bg-primary px-4 py-3 text-on-primary font-display font-semibold min-h-[44px] text-body-md"
       aria-label="Submit all words"
     >
       Submit Words
@@ -255,14 +255,14 @@
   {/if}
 
   {#if submitted}
-    <p class="text-center text-green-600 font-medium">Words submitted!</p>
+    <p class="text-center text-on-surface font-display font-semibold text-body-lg">Words submitted!</p>
   {/if}
 
   {#if isAdmin && allPlayersSubmitted}
     <button
       onclick={handleAdvance}
       disabled={advancing}
-      class="w-full rounded bg-purple-600 px-4 py-3 text-white font-medium min-h-[44px] disabled:opacity-50"
+      class="w-full rounded bg-secondary px-4 py-3 text-on-secondary font-display font-semibold min-h-[44px] disabled:opacity-50 text-body-md"
       aria-label="Advance to lobby"
     >
       {advancing ? "Advancing..." : "Advance to Lobby"}
