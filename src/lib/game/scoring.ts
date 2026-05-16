@@ -122,6 +122,12 @@ export async function undoLastAction(
       }
     }
 
+    // Decrement wordsGuessedThisTurn when undoing a guess (skip never incremented it)
+    let wordsGuessedThisTurn = currentGs.wordsGuessedThisTurn ?? 0
+    if (action.type === "guessed") {
+      wordsGuessedThisTurn = Math.max(0, wordsGuessedThisTurn - 1)
+    }
+
     return {
       ...currentGs,
       hat,
@@ -129,6 +135,7 @@ export async function undoLastAction(
       currentWordText: restoredWordText,
       lastAction: null,
       playerStats,
+      wordsGuessedThisTurn,
     }
   })
 
