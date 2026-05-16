@@ -66,36 +66,36 @@
 </script>
 
 <div class="space-y-5">
-  <h2 class="text-xl font-semibold text-center">Join Room</h2>
-  <p class="text-sm text-gray-600 text-center">Room: <span class="font-mono font-bold">{roomId}</span></p>
+  <h2 class="font-display text-headline-md text-on-surface text-center">Join Room</h2>
+  <p class="text-body-md text-on-surface-variant text-center">Room: <span class="font-display font-semibold">{roomId}</span></p>
 
   {#if joined}
     <div class="text-center space-y-3">
-      <p class="text-green-600 font-medium">Joined!</p>
-      <p class="text-sm text-gray-600">Waiting for game to start…</p>
+      <p class="text-on-surface font-display font-semibold text-body-lg">Joined!</p>
+      <p class="text-body-md text-on-surface-variant">Waiting for game to start…</p>
     </div>
   {:else}
     <form onsubmit={handleSubmit} class="space-y-4">
       <label class="block" for="player-name">
-        <span class="text-sm text-gray-700">Your name</span>
+        <span class="text-body-md text-on-surface-variant">Your name</span>
         <input
           id="player-name"
           type="text"
           bind:value={name}
           maxlength={30}
-          class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 min-h-[44px]"
+          class="mt-1 block w-full rounded border border-outline-variant px-3 py-2 min-h-[44px] text-body-md bg-surface-container-lowest"
           placeholder="Enter your name"
         />
       </label>
 
       {#if error}
-        <p class="text-sm text-red-600" role="alert">{error}</p>
+        <p class="text-body-md text-error" role="alert">{error}</p>
       {/if}
 
       <button
         type="submit"
         disabled={joining}
-        class="w-full rounded bg-blue-600 px-4 py-3 text-white font-medium min-h-[44px] disabled:opacity-50"
+        class="w-full rounded bg-primary px-4 py-3 text-on-primary font-display font-semibold min-h-[44px] disabled:opacity-50 text-body-md"
         aria-label="Confirm and join room"
       >
         {joining ? "Joining..." : "Join"}

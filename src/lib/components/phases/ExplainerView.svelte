@@ -204,116 +204,115 @@
   }
 </script>
 
-{#if isExplainer}
-  <div class="text-center p-4">
+<div class="text-center p-4">
   {#if errorMessage}
-    <div class="p-2 mb-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm" role="alert">
+    <div class="p-2 mb-3 bg-error-container border border-error rounded text-on-error-container text-body-md" role="alert">
       {errorMessage}
     </div>
   {/if}
 
   {#if phase === "waiting_start"}
-    <button
-      class="w-full min-h-11 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg"
-      aria-label="Start turn"
-      onclick={handleStart}
-    >
-      Start
-    </button>
+    {#if isExplainer}
+      <button
+        class="w-full min-h-[44px] px-6 py-3 bg-primary text-on-primary font-display font-semibold rounded text-body-lg"
+        aria-label="Start turn"
+        onclick={handleStart}
+      >
+        Start
+      </button>
+    {:else}
+      <p class="text-body-lg text-on-surface-variant">Waiting for explainer to start...</p>
+    {/if}
 
   {:else if phase === "explaining"}
     {#if currentWordText}
-      <p class="text-2xl font-bold text-blue-900 mb-4">{currentWordText}</p>
+      <p class="font-display text-display text-on-surface mb-6">{currentWordText}</p>
     {:else}
-      <p class="text-gray-400 italic mb-4">Drawing word...</p>
+      <p class="text-on-surface-variant italic mb-6 text-body-lg">Drawing word...</p>
     {/if}
 
-    <div class="flex gap-2 justify-center flex-wrap">
-      <button
-        class="min-h-11 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg"
-        aria-label="Guessed"
-        onclick={handleGuessed}
-      >
-        Guessed
-      </button>
-
-      <button
-        class="min-h-11 px-4 py-2 rounded-lg font-semibold inline-flex items-center gap-2"
-        class:bg-gray-300={skipDisabled}
-        class:text-gray-500={skipDisabled}
-        class:cursor-not-allowed={skipDisabled}
-        class:bg-orange-500={!skipDisabled}
-        class:text-white={!skipDisabled}
-        aria-label="Skip"
-        aria-disabled={skipDisabled}
-        disabled={skipDisabled}
-        onclick={handleSkip}
-      >
-        {#if skipDisabled}
-          <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-          </svg>
-        {/if}
-        Skip
-      </button>
-
-      {#if hasLastAction}
+    <div class="flex flex-col gap-3 w-full max-w-sm mx-auto">
+      {#if isExplainer}
         <button
-          class="min-h-11 px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg"
-          aria-label="Undo"
-          onclick={handleUndo}
+          class="w-full min-h-[48px] px-6 py-3 bg-success text-on-success font-display font-semibold rounded-lg text-body-lg active:scale-98 transition-transform"
+          aria-label="Guessed"
+          onclick={handleGuessed}
         >
-          Undo
+          Guessed
         </button>
+
+        <button
+          class="w-full min-h-[48px] px-6 py-3 rounded-lg font-display font-semibold text-body-lg transition-colors"
+          class:bg-surface-container={skipDisabled}
+          class:text-on-surface-variant={skipDisabled}
+          class:cursor-not-allowed={skipDisabled}
+          class:bg-on-tertiary-container={!skipDisabled}
+          class:text-on-tertiary={!skipDisabled}
+          aria-label="Skip"
+          aria-disabled={skipDisabled}
+          disabled={skipDisabled}
+          onclick={handleSkip}
+        >
+          Skip
+        </button>
+
+        {#if hasLastAction}
+          <button
+            class="w-full min-h-[48px] px-6 py-3 bg-surface-container-high text-on-surface font-display font-semibold rounded-lg text-body-md border border-outline-variant"
+            aria-label="Undo"
+            onclick={handleUndo}
+          >
+            Undo
+          </button>
+        {/if}
       {/if}
     </div>
 
   {:else if phase === "post_expiry"}
     {#if currentWordText}
-      <p class="text-2xl font-bold text-orange-900 mb-4">{currentWordText}</p>
+      <p class="font-display text-display text-on-surface mb-6">{currentWordText}</p>
     {/if}
 
-    <!-- Team selector for Guessed -->
-    <div class="mb-3">
-      <label class="block text-sm font-medium text-gray-700 mb-1" for="team-select">
-        Which team guessed?
-      </label>
-      <select
-        id="team-select"
-        class="min-h-11 px-3 py-2 border border-gray-300 rounded-lg w-full max-w-xs"
-        bind:value={postExpirySelectedTeam}
-        aria-label="Select team that guessed"
-      >
-        <option value={null}>-- Select team --</option>
-        {#each Object.entries(teams) as [tid, team] (tid)}
-          <option value={tid}>{team.name}</option>
-        {/each}
-      </select>
-    </div>
+    <div class="flex flex-col gap-3 w-full max-w-sm mx-auto">
+      {#if isExplainer}
+        <!-- Team selector for Guessed -->
+        <div class="mb-1">
+          <label class="block text-body-md font-medium text-on-surface mb-1 text-left" for="team-select">
+            Which team guessed?
+          </label>
+          <select
+            id="team-select"
+            class="min-h-[48px] px-3 py-2 border border-outline-variant rounded-lg w-full text-body-md bg-surface-container-lowest"
+            bind:value={postExpirySelectedTeam}
+            aria-label="Select team that guessed"
+          >
+            <option value={null}>-- Select team --</option>
+            {#each Object.entries(teams) as [tid, team] (tid)}
+              <option value={tid}>{team.name}</option>
+            {/each}
+          </select>
+        </div>
 
-    <div class="flex gap-2 justify-center flex-wrap">
-      <button
-        class="min-h-11 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg"
-        class:opacity-50={!postExpirySelectedTeam}
-        aria-label="Confirm guessed"
-        disabled={!postExpirySelectedTeam}
-        onclick={handleGuessed}
-      >
-        Guessed
-      </button>
+        <button
+          class="w-full min-h-[48px] px-6 py-3 bg-success text-on-success font-display font-semibold rounded-lg text-body-lg active:scale-98 transition-transform disabled:opacity-50"
+          aria-label="Confirm guessed"
+          disabled={!postExpirySelectedTeam}
+          onclick={handleGuessed}
+        >
+          Guessed
+        </button>
 
-      <button
-        class="min-h-11 px-4 py-2 bg-orange-500 text-white font-semibold rounded-lg"
-        aria-label="Skip"
-        onclick={handleSkip}
-      >
-        Skip
-      </button>
+        <button
+          class="w-full min-h-[48px] px-6 py-3 bg-on-tertiary-container text-on-tertiary font-display font-semibold rounded-lg text-body-lg"
+          aria-label="Skip"
+          onclick={handleSkip}
+        >
+          Skip
+        </button>
+      {/if}
     </div>
 
   {:else}
     <!-- Other phases show nothing -->
   {/if}
-  </div>
-{/if}
+</div>

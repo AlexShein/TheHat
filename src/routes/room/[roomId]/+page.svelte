@@ -73,16 +73,16 @@
   })
 </script>
 
-<div class="mx-auto max-w-md px-4 pt-8">
+<div class="mx-auto max-w-md px-container-padding pt-8">
   {#if authError}
-    <div class="p-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm mb-4" role="alert">
+    <div class="p-3 bg-error-container border border-error rounded text-on-error-container text-body-md mb-4" role="alert">
       {authError}
     </div>
   {/if}
 
   {#if screen.kind === "loading"}
     <div class="flex justify-center mt-12" role="status" aria-label="Loading room">
-      <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      <div class="animate-spin h-8 w-8 border-4 border-secondary border-t-transparent rounded-full"></div>
     </div>
   {:else if screen.kind === "name-entry"}
     <NameEntry
@@ -129,7 +129,7 @@
       />
     {:else}
       <div class="flex justify-center mt-12" role="status" aria-label="Loading">
-        <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <div class="animate-spin h-8 w-8 border-4 border-secondary border-t-transparent rounded-full"></div>
       </div>
     {/if}
   {:else if screen.kind === "playing"}
@@ -157,12 +157,12 @@
       />
     {:else}
       <div class="flex justify-center mt-12" role="status" aria-label="Loading game">
-        <div class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <div class="animate-spin h-8 w-8 border-4 border-secondary border-t-transparent rounded-full"></div>
       </div>
     {/if}
   {:else if screen.kind === "game-already-started"}
-    <p class="text-center text-gray-600">Game already started</p>
+    <p class="text-center text-body-md text-on-surface-variant">Game already started</p>
   {:else if screen.kind === "unknown"}
-    <p class="text-center text-red-600">Unknown room state: {screen.raw}</p>
+    <p class="text-center text-body-md text-error">Unknown room state: {screen.raw}</p>
   {/if}
 </div>

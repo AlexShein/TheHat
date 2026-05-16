@@ -9,6 +9,7 @@
   import { getTimeRemaining } from "$lib/game/timer"
   import { getWordDisplayedAt } from "$lib/game/word-display"
   import { handleTimerExpiry } from "$lib/game/turn-expiry"
+  import { getTeamColorClasses } from "$lib/team-colors"
 
   let {
     db,
@@ -59,6 +60,11 @@
   // Compute next team and explainer for PostTurn display.
   // Always rotates to next team (round-robin), uses that team's currentPlayerIndex.
   const teamIds = $derived(Object.keys(teams).sort())
+
+  const teamColor = $derived.by(() => {
+    return getTeamColorClasses(currentTeamId).bar
+  })
+
   const nextTeamId = $derived.by(() => {
     const currentPos = teamIds.indexOf(currentTeamId)
     if (currentPos === -1) return currentTeamId
@@ -146,80 +152,83 @@
 </script>
 
 {#if timerExpiryError}
-  <div class="p-2 mb-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm" role="alert">
+  <div class="p-2 mb-3 bg-error-container border border-error rounded text-on-error-container text-body-md" role="alert">
     {timerExpiryError}
   </div>
 {/if}
 
+<!-- Active turn indicator bar — 4px glowing bar in current team color -->
+<div class="h-1 {teamColor} opacity-80" role="presentation" aria-hidden="true"></div>
+
 <!-- Round indicator -->
-<p class="text-center text-sm text-gray-500 mb-2">Round {round} of 3</p>
-<p class="text-center text-sm text-gray-500 mb-2">Words left in the hat: {hat.length}</p>
+<p class="text-center text-body-md text-on-surface-variant mb-2">Round {round} of 3</p>
+<p class="text-center text-body-md text-on-surface-variant mb-2">Words left in the hat: {hat.length}</p>
 <!-- Team scoreboard header -->
 <div class="flex gap-2 mb-3">
   {#each Object.entries(teams) as [tid, team] (tid)}
     {@const total = (team.roundScores.round1 ?? 0) + (team.roundScores.round2 ?? 0) + (team.roundScores.round3 ?? 0)}
     <div class="flex-1">
-      <TeamScore teamName={team.name} score={total} isActive={tid === currentTeamId} />
+      <TeamScore teamName={team.name} teamId={tid} score={total} isActive={tid === currentTeamId} />
     </div>
   {/each}
 </div>
 
 {#if phase === "waiting_start"}
   {#if isExplainer}
-    <ExplainerView
-      {db}
-      {roomId}
-      {playerId}
-      {phase}
-      {round}
-      {currentWordId}
-      {currentWordText}
-      {currentExplainerId}
-      {currentTeamId}
-      {lastAction}
-      {teams}
-      skipPenalty={config.skipPenalty}
-    />
-  {:else}
-    <div class="text-center">
-      <p class="text-lg text-gray-700 mb-2" aria-live="polite">
-        {explainerName} is explaining next
-      </p>
-      <p class="text-sm text-gray-500 mb-4">Waiting to start...</p>
-    </div>
-  {/if}
-  <Timer
-    timerStartedAt={null}
-    {timerDuration}
-    pausedAt={null}
-    timeRemainingAtPause={null}
-  />
-{:else if phase === "explaining"}
-  {#if isExplainer}
-    <ExplainerView
-      {db}
-      {roomId}
-      {playerId}
-      {phase}
-      {round}
-      {currentWordId}
-      {currentWordText}
-      {currentExplainerId}
-      {currentTeamId}
-      {lastAction}
-      {teams}
-      skipPenalty={config.skipPenalty}
-    />
     <Timer
       {timerStartedAt}
       {timerDuration}
       {pausedAt}
       {timeRemainingAtPause}
     />
+    <ExplainerView
+      {db}
+      {roomId}
+      {playerId}
+      {phase}
+      {round}
+      {currentWordId}
+      {currentWordText}
+      {currentExplainerId}
+      {currentTeamId}
+      {lastAction}
+      {teams}
+      skipPenalty={config.skipPenalty}
+    />
+  {:else}
+    <div class="text-center">
+      <p class="text-body-lg text-on-surface mb-2" aria-live="polite">
+        {explainerName} is explaining next
+      </p>
+      <p class="text-body-md text-on-surface-variant mb-4">Waiting to start...</p>
+    </div>
+  {/if}
+{:else if phase === "explaining"}
+  {#if isExplainer}
+    <Timer
+      {timerStartedAt}
+      {timerDuration}
+      {pausedAt}
+      {timeRemainingAtPause}
+    />
+    <ExplainerView
+      {db}
+      {roomId}
+      {playerId}
+      {phase}
+      {round}
+      {currentWordId}
+      {currentWordText}
+      {currentExplainerId}
+      {currentTeamId}
+      {lastAction}
+      {teams}
+      skipPenalty={config.skipPenalty}
+    />
   {:else}
     <!-- Observer view: timer only, no word -->
     <div class="text-center">
-      <p class="text-sm text-gray-500 mb-2">{explainerName} is explaining</p>
+      <p class="text-body-md text-on-surface-variant mb-2">{explainerName} is explaining</p>
       <Timer
         {timerStartedAt}
         {timerDuration}
@@ -230,6 +239,12 @@
   {/if}
 {:else if phase === "post_expiry"}
   {#if isExplainer}
+    <Timer
+      {timerStartedAt}
+      {timerDuration}
+      {pausedAt}
+      {timeRemainingAtPause}
+    />
     <ExplainerView
       {db}
       {roomId}
@@ -244,25 +259,15 @@
       {teams}
       skipPenalty={config.skipPenalty}
     />
-    <Timer
-      {timerStartedAt}
-      {timerDuration}
-      {pausedAt}
-      {timeRemainingAtPause}
-    />
   {:else}
-    <!-- Observer view: show revealed word + timer at 0 -->
     <div class="text-center">
-      <p class="text-sm text-gray-500 mb-2">{explainerName}'s time is up</p>
+      <p class="text-body-md text-on-surface-variant mb-2">{explainerName}'s time is up</p>
       <Timer
         {timerStartedAt}
         {timerDuration}
         {pausedAt}
         {timeRemainingAtPause}
       />
-      <!-- {#if currentWordText}
-        <p class="mt-3 text-xl font-semibold text-gray-800">The word was: <span class="text-blue-700">{currentWordText}</span></p>
-      {/if} -->
     </div>
   {/if}
 {:else if phase === "post_turn"}

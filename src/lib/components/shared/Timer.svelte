@@ -45,14 +45,14 @@
 </script>
 
 <div
-  class="flex items-center justify-center"
+  class="flex items-center justify-center mt-6 mb-6"
   aria-live="polite"
   aria-label="Timer: {formatted}"
 >
   <span
-    class="text-5xl font-mono tabular-nums min-w-[88px] min-h-[44px] leading-[44px] inline-block {isLow
-      ? 'text-red-500'
-      : 'text-current'}"
+    class="font-display text-display tabular-nums min-w-[88px] min-h-[44px] leading-[44px] inline-block {isLow
+      ? 'text-error'
+      : 'text-on-surface'}"
   >
     {formatted}
   </span>
