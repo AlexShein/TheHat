@@ -65,8 +65,8 @@ export async function recordSkip(
   }
   await set(ref(db, `rooms/${roomId}/gameState/lastAction`), lastAction)
 
-  // Draw next word
-  return drawWord(db, roomId)
+  // Draw next word — exclude currentWordId so skipped word isn't re-drawn
+  return drawWord(db, roomId, currentWordId)
 }
 
 /**

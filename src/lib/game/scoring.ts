@@ -107,10 +107,12 @@ export async function undoLastAction(
       hat.push(currentGs.currentWordId)
     }
 
-    // Return action.wordId to hat — it also becomes currentWordId below.
-    // Both currentWordId and action.wordId land in hat per existing test expectations.
-    if (action.wordId !== null && !hat.includes(action.wordId)) {
-      hat.push(action.wordId)
+    // action.wordId becomes currentWordId below — must NOT be in hat.
+    // For skipped: returnWord put it in hat during recordSkip, so remove it.
+    // For guessed: it was never in hat, nothing to do.
+    if (action.type === "skipped" && action.wordId !== null) {
+      const idx = hat.indexOf(action.wordId)
+      if (idx !== -1) hat.splice(idx, 1)
     }
 
     // Compute updated playerStats

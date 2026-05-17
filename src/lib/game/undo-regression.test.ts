@@ -5,7 +5,7 @@ import { makeDatabase, nextRoomId, seedFullGameState, seedWords } from "./__test
 import type { LastAction } from "$lib/db-types"
 
 describe("undoLastAction — regression fixes", () => {
-  it("type=skipped: does NOT duplicate action.wordId in hat (returnWord already added it)", async () => {
+  it("type=skipped: action.wordId REMOVED from hat (returnWord added it, undo removes)", async () => {
     const db = makeDatabase()
     const roomId = nextRoomId("scoring")
     const lastAction: LastAction = {
@@ -16,7 +16,7 @@ describe("undoLastAction — regression fixes", () => {
     }
     // Simulate: w-skipped was skipped during recordSkip → returnWord put it back in hat.
     // Hat before undo: [w-2, w-3, w-skipped] (3 items)
-    // After undo: currentWordId=w-0 goes to hat. w-skipped should NOT be added again.
+    // After undo: w-skipped becomes currentWordId. w-0 goes to hat. w-skipped REMOVED from hat.
     await seedFullGameState(db, roomId, {
       lastAction,
       currentWordId: "w-0",
@@ -30,16 +30,17 @@ describe("undoLastAction — regression fixes", () => {
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
 
-    // Hat should contain: w-2, w-3, w-skipped, w-0 — exactly 4 items, no duplicate w-skipped
-    expect(gs.hat).toContain("w-skipped")
-    const skipCount = gs.hat.filter((id: string) => id === "w-skipped").length
-    expect(skipCount).toBe(1)
-    expect(gs.hat).toHaveLength(4)
+    // w-skipped NOT in hat — only as currentWordId
+    expect(gs.hat).not.toContain("w-skipped")
+    expect(gs.hat).toContain("w-2")
+    expect(gs.hat).toContain("w-3")
+    expect(gs.hat).toContain("w-0")
+    expect(gs.hat).toHaveLength(3)
     expect(gs.currentWordId).toBe("w-skipped")
     expect(gs.currentWordText).toBe("skipped-word")
   })
 
-  it("type=guessed: decrements wordsGuessedThisTurn by 1", async () => {
+  it("type=guessed: decrements wordsGuessedThisTurn by 1, action.wordId not in hat", async () => {
     const db = makeDatabase()
     const roomId = nextRoomId("scoring")
     const lastAction: LastAction = {
@@ -61,6 +62,9 @@ describe("undoLastAction — regression fixes", () => {
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
     expect(gs.wordsGuessedThisTurn).toBe(2)
+    // Regression: action.wordId not in hat
+    expect(gs.hat).not.toContain("w-5")
+    expect(gs.currentWordId).toBe("w-5")
   })
 
   it("type=skipped: does NOT decrement wordsGuessedThisTurn (skip never incremented it)", async () => {
@@ -87,7 +91,7 @@ describe("undoLastAction — regression fixes", () => {
     expect(gs.wordsGuessedThisTurn).toBe(3)
   })
 
-  it("full cycle: guess → undo → wordsGuessedThisTurn goes to 0 so re-guess would be 1", async () => {
+  it("full cycle: guess → undo → w-5 becomes currentWordId, w-1 returns to hat, w-5 NOT in hat", async () => {
     const db = makeDatabase()
     const roomId = nextRoomId("scoring")
     const lastAction: LastAction = {
@@ -96,7 +100,6 @@ describe("undoLastAction — regression fixes", () => {
       scoredTeamId: "team-1",
       scoreWasPenalty: false,
     }
-    // Simulate: w-5 was guessed, count went to 1, new word w-1 was drawn
     await seedFullGameState(db, roomId, {
       lastAction,
       currentWordId: "w-1",
@@ -105,15 +108,13 @@ describe("undoLastAction — regression fixes", () => {
     })
     await seedWords(db, roomId)
 
-    // Undo the guess
     await undoLastAction(db, roomId, 2, true)
 
     const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
     const gs = gsSnap.val()
-    // wordsGuessedThisTurn should be back to 0
     expect(gs.wordsGuessedThisTurn).toBe(0)
-    // w-1 returned to hat, w-5 restored as current
     expect(gs.currentWordId).toBe("w-5")
     expect(gs.hat).toContain("w-1")
+    expect(gs.hat).not.toContain("w-5")
   })
 })
