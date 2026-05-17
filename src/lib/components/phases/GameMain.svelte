@@ -6,10 +6,7 @@
   import RoundEnd from "$lib/components/phases/RoundEnd.svelte"
   import type { Database } from "firebase/database"
   import type { Team, Player, GameState } from "$lib/db-types"
-  import { getTimeRemaining } from "$lib/game/timer"
-  import { getWordDisplayedAt } from "$lib/game/word-display"
-  import { handleTimerExpiry } from "$lib/game/turn-expiry"
-  import { getTeamColorClasses } from "$lib/team-colors"
+  import { createGameMainLogic } from "./game-main-logic.svelte"
 
   let {
     db,
@@ -53,117 +50,40 @@
     config: { skipPenalty: boolean; timerDuration: number }
   } = $props()
 
-  const isExplainer = $derived(playerId === currentExplainerId)
-
-  const explainerName = $derived(players[currentExplainerId]?.name ?? "Unknown")
-
-  // Compute next team and explainer for PostTurn display.
-  // Always rotates to next team (round-robin), uses that team's currentPlayerIndex.
-  const teamIds = $derived(Object.keys(teams).sort())
-
-  const teamColor = $derived.by(() => {
-    return getTeamColorClasses(currentTeamId).bar
-  })
-
-  const nextTeamId = $derived.by(() => {
-    const currentPos = teamIds.indexOf(currentTeamId)
-    if (currentPos === -1) return currentTeamId
-    const nextPos = (currentPos + 1) % teamIds.length
-    return teamIds[nextPos]!
-  })
-  const nextTeam = $derived(teams[nextTeamId])
-  const nextExplainerId = $derived.by(() => {
-    if (!nextTeam?.playerOrder) return ""
-    const idx = nextTeam.currentPlayerIndex ?? 0
-    return nextTeam.playerOrder[idx] ?? ""
-  })
-  const nextExplainerName = $derived.by(() => players[nextExplainerId]?.name ?? "Unknown")
-  const nextTeamName = $derived.by(() => nextTeam?.name ?? "Unknown")
-
-  // Client-side only: track wordDisplayedAt for timer expiry check
-  let wordDisplayed = $state<{ id: string | null; displayedAt: number | null }>({
-    id: null,
-    displayedAt: null,
-  })
-
-  let prevWordId: string | null = null // plain let — NOT $state. Writing it must not re-trigger $effect
-  let timerExpiryError = $state("")
-
-  $effect(() => {
-    if (phase !== "explaining") return
-
-    const displayedAt = getWordDisplayedAt(currentWordId, prevWordId)
-    wordDisplayed = { id: currentWordId, displayedAt }
-    prevWordId = currentWordId
-
-    // Reset on phase exit
-    return () => {
-      wordDisplayed = { id: null, displayedAt: null }
-      prevWordId = null
-    }
-  })
-
-  // Timer expiry watcher — only explainer writes (single-writer-per-turn invariant)
-  $effect(() => {
-    if (!isExplainer) return
-    if (phase !== "explaining") return
-
-    const remaining = getTimeRemaining(timerStartedAt, timerDuration, pausedAt, timeRemainingAtPause)
-    if (remaining > 0) {
-      // Set up interval to check every 100ms
-      let fired = false
-      const interval = setInterval(() => {
-        if (fired) return
-        const r = getTimeRemaining(timerStartedAt, timerDuration, pausedAt, timeRemainingAtPause)
-        if (r <= 0) {
-          fired = true
-          clearInterval(interval)
-          handleTimerExpiry(
-            db,
-            roomId,
-            timerStartedAt,
-            timerDuration,
-            pausedAt,
-            timeRemainingAtPause,
-            wordDisplayed.id,
-            wordDisplayed.displayedAt,
-          ).catch((err: unknown) => {
-            timerExpiryError = err instanceof Error ? err.message : "Timer expiry failed"
-          })
-        }
-      }, 100)
-      return () => clearInterval(interval)
-    } else {
-      // Already expired on mount — fire immediately
-      handleTimerExpiry(
-        db,
-        roomId,
-        timerStartedAt,
-        timerDuration,
-        pausedAt,
-        timeRemainingAtPause,
-        wordDisplayed.id,
-        wordDisplayed.displayedAt,
-      ).catch((err: unknown) => {
-        timerExpiryError = err instanceof Error ? err.message : "Timer expiry failed"
-      })
-    }
-  })
+  const logic = createGameMainLogic(() => ({
+    db,
+    roomId,
+    playerId,
+    hat,
+    phase,
+    round,
+    currentExplainerId,
+    currentTeamId,
+    currentWordId,
+    currentWordText,
+    lastAction,
+    timerStartedAt,
+    timerDuration,
+    pausedAt,
+    timeRemainingAtPause,
+    wordsGuessedThisTurn,
+    teams,
+    players,
+    config,
+  }))
 </script>
 
-{#if timerExpiryError}
+{#if logic.timerExpiryError}
   <div class="p-2 mb-3 bg-error-container border border-error rounded text-on-error-container text-body-md" role="alert">
-    {timerExpiryError}
+    {logic.timerExpiryError}
   </div>
 {/if}
 
-<!-- Active turn indicator bar — 4px glowing bar in current team color -->
-<div class="h-1 {teamColor} opacity-80" role="presentation" aria-hidden="true"></div>
+<div class="h-1 {logic.teamColor} opacity-80" role="presentation" aria-hidden="true"></div>
 
-<!-- Round indicator -->
 <p class="text-center text-body-md text-on-surface-variant mb-2">Round {round} of 3</p>
 <p class="text-center text-body-md text-on-surface-variant mb-2">Words left in the hat: {hat.length}</p>
-<!-- Team scoreboard header -->
+
 <div class="flex gap-2 mb-3">
   {#each Object.entries(teams) as [tid, team] (tid)}
     {@const total = (team.roundScores.round1 ?? 0) + (team.roundScores.round2 ?? 0) + (team.roundScores.round3 ?? 0)}
@@ -174,13 +94,8 @@
 </div>
 
 {#if phase === "waiting_start"}
-  {#if isExplainer}
-    <Timer
-      {timerStartedAt}
-      {timerDuration}
-      {pausedAt}
-      {timeRemainingAtPause}
-    />
+  {#if logic.isExplainer}
+    <Timer {timerStartedAt} {timerDuration} {pausedAt} {timeRemainingAtPause} />
     <ExplainerView
       {db}
       {roomId}
@@ -194,23 +109,19 @@
       {lastAction}
       {teams}
       skipPenalty={config.skipPenalty}
+      {hat}
     />
   {:else}
     <div class="text-center">
       <p class="text-body-lg text-on-surface mb-2" aria-live="polite">
-        {explainerName} is explaining next
+        {logic.explainerName} is explaining next
       </p>
       <p class="text-body-md text-on-surface-variant mb-4">Waiting to start...</p>
     </div>
   {/if}
 {:else if phase === "explaining"}
-  {#if isExplainer}
-    <Timer
-      {timerStartedAt}
-      {timerDuration}
-      {pausedAt}
-      {timeRemainingAtPause}
-    />
+  {#if logic.isExplainer}
+    <Timer {timerStartedAt} {timerDuration} {pausedAt} {timeRemainingAtPause} />
     <ExplainerView
       {db}
       {roomId}
@@ -224,27 +135,17 @@
       {lastAction}
       {teams}
       skipPenalty={config.skipPenalty}
+      {hat}
     />
   {:else}
-    <!-- Observer view: timer only, no word -->
     <div class="text-center">
-      <p class="text-body-md text-on-surface-variant mb-2">{explainerName} is explaining</p>
-      <Timer
-        {timerStartedAt}
-        {timerDuration}
-        {pausedAt}
-        {timeRemainingAtPause}
-      />
+      <p class="text-body-md text-on-surface-variant mb-2">{logic.explainerName} is explaining</p>
+      <Timer {timerStartedAt} {timerDuration} {pausedAt} {timeRemainingAtPause} />
     </div>
   {/if}
 {:else if phase === "post_expiry"}
-  {#if isExplainer}
-    <Timer
-      {timerStartedAt}
-      {timerDuration}
-      {pausedAt}
-      {timeRemainingAtPause}
-    />
+  {#if logic.isExplainer}
+    <Timer {timerStartedAt} {timerDuration} {pausedAt} {timeRemainingAtPause} />
     <ExplainerView
       {db}
       {roomId}
@@ -258,16 +159,12 @@
       {lastAction}
       {teams}
       skipPenalty={config.skipPenalty}
+      {hat}
     />
   {:else}
     <div class="text-center">
-      <p class="text-body-md text-on-surface-variant mb-2">{explainerName}'s time is up</p>
-      <Timer
-        {timerStartedAt}
-        {timerDuration}
-        {pausedAt}
-        {timeRemainingAtPause}
-      />
+      <p class="text-body-md text-on-surface-variant mb-2">{logic.explainerName}'s time is up</p>
+      <Timer {timerStartedAt} {timerDuration} {pausedAt} {timeRemainingAtPause} />
     </div>
   {/if}
 {:else if phase === "post_turn"}
@@ -275,8 +172,8 @@
     {db}
     {roomId}
     wordsGuessed={wordsGuessedThisTurn}
-    nextExplainerName={nextExplainerName}
-    nextTeamName={nextTeamName}
+    nextExplainerName={logic.nextExplainerName}
+    nextTeamName={logic.nextTeamName}
   />
 {:else if phase === "round_end"}
   <RoundEnd

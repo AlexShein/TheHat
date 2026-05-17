@@ -9,7 +9,7 @@ import type { GameState, Word } from "$lib/db-types"
  * picking the same word. Returns the drawn wordId, or null if hat was empty.
  * Must be called only by currentExplainerId's client.
  */
-export async function drawWord(db: Database, roomId: string): Promise<string | null> {
+export async function drawWord(db: Database, roomId: string, excludeWordId?: string): Promise<string | null> {
   const gsRef = ref(db, `rooms/${roomId}/gameState`)
 
   // Read current hat outside transaction — safe: single-writer-per-turn
@@ -29,7 +29,10 @@ export async function drawWord(db: Database, roomId: string): Promise<string | n
     }
   }
 
-  // Single transaction: pick random word from CURRENT hat, remove, write all fields
+  // Capture locally for transaction closure — Firebase SDK rejects ref reads inside transaction
+  const excludeId = excludeWordId ?? null
+
+  // Single transaction: pick random word from CURRENT hat (excluding excludeId), remove, write all fields
   const result = await runTransaction(gsRef, (current) => {
     if (current === null) return null
 
@@ -38,9 +41,15 @@ export async function drawWord(db: Database, roomId: string): Promise<string | n
 
     if (currentHat.length === 0) return null
 
-    // Pick random word from CURRENT hat (inside transaction for safety)
-    const idx = Math.floor(Math.random() * currentHat.length)
-    const drawnWordId = currentHat[idx]!
+    // Build candidate pool, excluding excluded word
+    const candidates = excludeId ? currentHat.filter((id) => id !== excludeId) : currentHat
+
+    // If all words are excluded, fall back to full hat (edge case: skip when hat=[])
+    const pool = candidates.length > 0 ? candidates : currentHat
+
+    // Pick random word from pool
+    const idx = Math.floor(Math.random() * pool.length)
+    const drawnWordId = pool[idx]!
 
     const newHat = currentHat.filter((id) => id !== drawnWordId)
     const wordText = wordsMap.get(drawnWordId) ?? null

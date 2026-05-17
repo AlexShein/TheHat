@@ -230,3 +230,51 @@ describe("returnWord", () => {
     expect(gs.hat).toContain("w-x")
   })
 })
+
+describe("drawWord with excludeWordId", () => {
+  it("never picks excluded word when hat has other words", async () => {
+    const db = makeDatabase()
+    const roomId = `hat-test-${Date.now()}-${idx++}`
+    await seedGameState(db, roomId, ["w-1", "w-2", "w-3"])
+    await seedWord(db, roomId, "w-1", "alpha")
+    await seedWord(db, roomId, "w-2", "beta")
+    await seedWord(db, roomId, "w-3", "gamma")
+
+    // Run 10 times — excluded word must never be drawn
+    for (let i = 0; i < 10; i++) {
+      // Re-seed each iteration so hat is full
+      await set(ref(db, `rooms/${roomId}/gameState/hat`), ["w-1", "w-2", "w-3"])
+      const drawn = await drawWord(db, roomId, "w-1")
+      expect(drawn).not.toBe("w-1")
+      expect(drawn).not.toBeNull()
+    }
+  })
+
+  it("falls back to full hat when only excluded word in hat (dedup is best-effort)", async () => {
+    const db = makeDatabase()
+    const roomId = `hat-test-${Date.now()}-${idx++}`
+    await seedGameState(db, roomId, ["w-lonely"])
+    await seedWord(db, roomId, "w-lonely", "lonely")
+
+    const drawn = await drawWord(db, roomId, "w-lonely")
+    expect(drawn).toBe("w-lonely")
+
+    // Verify currentWordId set correctly (hat state covered by other tests)
+    const gsSnap = await get(ref(db, `rooms/${roomId}/gameState`))
+    const gs = gsSnap.val()
+    expect(gs.currentWordId).toBe("w-lonely")
+  })
+
+  it("still picks any word when excludeWordId is not in hat", async () => {
+    const db = makeDatabase()
+    const roomId = `hat-test-${Date.now()}-${idx++}`
+    await seedGameState(db, roomId, ["w-a", "w-b"])
+    await seedWord(db, roomId, "w-a", "aa")
+    await seedWord(db, roomId, "w-b", "bb")
+
+    const drawn = await drawWord(db, roomId, "w-missing")
+    expect(drawn).not.toBeNull()
+    // Either w-a or w-b is fine — just verify non-null and not excluded phantom
+    expect(["w-a", "w-b"]).toContain(drawn)
+  })
+})

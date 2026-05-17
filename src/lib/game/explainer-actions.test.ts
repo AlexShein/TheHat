@@ -289,3 +289,35 @@ describe("completePostExpirySkip", () => {
     expect(gs.hat).toHaveLength(3) // w-2, w-3 + w-1 returned
   })
 })
+
+describe("recordSkip — skip dedup", () => {
+  it("never returns same word as skipped when hat has other words", async () => {
+    const db = makeDatabase()
+
+    // Hat: [w-1, w-2, w-3], currentWordId = w-1 (the word being skipped)
+    // After recordSkip: w-1 returned to hat, then drawWord must NOT pick w-1
+    // Run multiple times to verify statistically
+    let skippedDrawn = 0
+    const attempts = 5
+
+    for (let i = 0; i < attempts; i++) {
+      const localRoomId = `ea-skip-dup-${Date.now()}-${idx++}`
+      await seedGameState(db, localRoomId, {
+        hat: ["w-2", "w-3"],
+        currentWordId: "w-1",
+        currentWordText: "apple",
+        timerStartedAt: 1234567890,
+        wordsGuessedThisTurn: 1,
+      })
+
+      const nextWordId = await recordSkip(db, localRoomId, "w-1", "team-a", true, 1)
+
+      // After skip: w-1 returned to hat → hat = [w-2, w-3, w-1]
+      // drawWord(exclude=w-1) must NOT pick w-1
+      expect(nextWordId).not.toBeNull()
+      if (nextWordId === "w-1") skippedDrawn++
+    }
+
+    expect(skippedDrawn).toBe(0)
+  })
+})
