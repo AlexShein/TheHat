@@ -4,6 +4,7 @@ node_modules/
 build/
 .svelte-kit/
 .env
+.env.production
 .env.local
 .firebase/
 coverage/

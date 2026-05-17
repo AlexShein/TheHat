@@ -165,6 +165,15 @@ VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.region.firebasedata
 VITE_USE_EMULATOR=true  # true for local dev, false for production
 ```
 
+To deploy the app to production, configure `.env.production`:
+
+```env
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_DATABASE_URL=https://your-project-default-rtdb.region.firebasedatabase.app
+VITE_USE_EMULATOR=false  # always false for production
+```
+
 ### Run Locally
 
 ```bash
@@ -177,6 +186,13 @@ npm run dev:solo         # Dev server with min-player bypass
 ```
 
 App runs at `http://localhost:5173`.
+
+### Deploy
+
+```bash
+# Build the app and deploy everything to Firebase
+firebase deploy
+```
 
 ---
 
