@@ -17,6 +17,7 @@
       if (user) {
         authStore.setUser(user)
       } else {
+        authStore.setUser(null)
         // No user — landing page stays passive. Room page handles its own auth.
         authStore.setLoading(false)
       }
