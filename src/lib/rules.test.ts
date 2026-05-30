@@ -159,3 +159,87 @@ describe("room creator as room admin", () => {
   //   await expect(db.ref("rooms/creatorTest/status").set("playing")).rejects.toThrow("PERMISSION_DENIED")
   // })
 })
+
+describe("admin player node update (restart flow)", () => {
+  const RESTART_ROOM = "restartTest"
+
+  beforeAll(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.database()
+      await db.ref(`rooms/${RESTART_ROOM}/meta`).set({
+        createdBy: ADMIN_UID,
+        createdAt: 1,
+        lastActiveAt: 1,
+      })
+      await db.ref(`rooms/${RESTART_ROOM}/players/${PLAYER_UID}`).set({
+        name: "Alice",
+        color: "#ff0000",
+        teamId: "team-1",
+        wordsSubmitted: true,
+        ready: true,
+        connected: true,
+        isAdmin: false,
+      })
+    })
+  })
+
+  it("admin can update another player's wordsSubmitted and ready", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database()
+    await expect(
+      db.ref(`rooms/${RESTART_ROOM}/players/${PLAYER_UID}`).update({
+        wordsSubmitted: false,
+        ready: false,
+      }),
+    ).resolves.toBeUndefined()
+  })
+
+  it("non-admin, non-owner cannot update another player's node — permission-denied", async () => {
+    const db = testEnv.authenticatedContext(OTHER_PLAYER_UID).database()
+    await expect(
+      db.ref(`rooms/${RESTART_ROOM}/players/${PLAYER_UID}`).update({
+        wordsSubmitted: false,
+        ready: false,
+      }),
+    ).rejects.toThrow("PERMISSION_DENIED")
+  })
+})
+
+describe("words parent node removal (restart flow)", () => {
+  const WORDS_ROOM = "wordsRmTest"
+
+  beforeAll(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.database()
+      await db.ref(`rooms/${WORDS_ROOM}/meta`).set({
+        createdBy: ADMIN_UID,
+        createdAt: 1,
+        lastActiveAt: 1,
+      })
+      await db.ref(`rooms/${WORDS_ROOM}/words/word-a`).set({
+        text: "apple",
+        addedBy: PLAYER_UID,
+      })
+      await db.ref(`rooms/${WORDS_ROOM}/words/word-b`).set({
+        text: "banana",
+        addedBy: PLAYER_UID,
+      })
+    })
+  })
+
+  it("authenticated user can remove entire words node", async () => {
+    const db = testEnv.authenticatedContext(PLAYER_UID).database()
+    await expect(db.ref(`rooms/${WORDS_ROOM}/words`).remove()).resolves.toBeUndefined()
+  })
+
+  it("unauthenticated user cannot remove entire words node — permission-denied", async () => {
+    // Re-seed words since previous test removed them
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await ctx.database().ref(`rooms/${WORDS_ROOM}/words/word-c`).set({
+        text: "cherry",
+        addedBy: PLAYER_UID,
+      })
+    })
+    const db = testEnv.unauthenticatedContext().database()
+    await expect(db.ref(`rooms/${WORDS_ROOM}/words`).remove()).rejects.toThrow("PERMISSION_DENIED")
+  })
+})

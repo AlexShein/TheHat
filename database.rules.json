@@ -20,7 +20,7 @@
         },
         "players": {
           "$playerId": {
-            ".write": "auth != null && (auth.uid === $playerId)",
+            ".write": "auth != null && (auth.uid === $playerId || root.child('admins').child(auth.uid).exists())",
             ".validate": "newData.hasChildren(['name', 'color', 'wordsSubmitted', 'ready', 'connected', 'isAdmin'])"
           }
         },
@@ -31,6 +31,7 @@
           }
         },
         "words": {
+          ".write": "auth != null",
           "$wordId": {
             ".write": "auth != null",
             ".validate": "newData.hasChildren(['text', 'addedBy'])"
