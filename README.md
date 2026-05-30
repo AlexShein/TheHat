@@ -8,7 +8,7 @@
 [![Vitest](https://img.shields.io/badge/test-vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-Real-time multiplayer word-guessing party game for mobile. Players split into teams, explain words from a virtual hat, and compete across three rounds. Built for a private group of friends (~5–16 players).
+Real-time multiplayer word-guessing party game for mobile. Players split into teams, explain words from a virtual hat, and compete across three rounds. Built for a private group of friends (~4–16 players).
 
 ---
 
