@@ -49,11 +49,15 @@
   )
 
   let restarting = $state(false)
+  let restartError = $state("")
 
   async function handleRestart(): Promise<void> {
+    restartError = ""
     restarting = true
     try {
       await restartGame(db, roomId)
+    } catch (err: unknown) {
+      restartError = err instanceof Error ? err.message : "Restart failed. Please try again."
     } finally {
       restarting = false
     }
@@ -102,6 +106,10 @@
       {/each}
     </tbody>
   </table>
+
+  {#if restartError}
+    <p class="text-error text-body-md mb-4" role="alert">{restartError}</p>
+  {/if}
 
   {#if isAdmin}
     <button

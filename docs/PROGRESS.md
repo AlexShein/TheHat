@@ -262,6 +262,13 @@ Root cause: `undoLastAction()` used `set()` (not `runTransaction()`) for hat mut
 
 ---
 
+## Bug Fix — Restart Button Does Nothing (Security Rules Block Admin Writes) ✅
+
+`restartGame()` failed silently because RTDB rules blocked admin from updating other players' `wordsSubmitted`/`ready` (`auth.uid === $playerId` mismatched Google UID vs anonymous player UIDs) and denied `remove()` on the `words` parent node (missing `.write` rule). Fix: extended `players/$playerId/.write` to allow whitelisted admins via `root.child('admins').child(auth.uid).exists()`, added `.write` at `words` parent level, and added error handling to Scoreboard's restart button with user-visible error display.
+| `database.rules.json` | MODIFY — player `.write` allows admin override, `words` parent gets `.write` |
+| `src/lib/rules.test.ts` | MODIFY — 4 new tests (admin player update, non-admin denied, words removal, unauthenticated denied) |
+| `src/lib/components/phases/Scoreboard.svelte` | MODIFY — catch block + error display for restart failures |
+
 ## Bug Fix — Undo Double-Adds Word & Skip Repicks Same Word ✅
 
 Undo no longer calls `returnWord()` — reverts to explainer screen without re-injecting word into hat. `drawWord()` gains optional `excludeWordId`; `recordSkip()` passes skipped word as exclusion so skip always picks different word when hat has alternatives. Fallback draws excluded word when it's the only one left. All 219 tests pass, lint clean.
