@@ -145,8 +145,10 @@ src/
 ### Prerequisites
 
 - Node.js == 25
+- Java 11+ (for Firebase emulators)
 - Firebase project with RTDB and Google Auth enabled
 - Service account key for admin scripts
+- `firebase login` only required for deploying or testing against live Firebase — **not needed for local emulator development**
 
 ### Setup
 
@@ -259,6 +261,19 @@ Set `VITE_DEV_BYPASS_MIN_PLAYERS=true` (or use `npm run dev:solo`) to bypass:
 - All-players-ready gate
 
 This flag only affects `Lobby.svelte` and game initialization. Never true in production.
+
+### GitHub Codespaces
+
+This repo includes a dev container configuration for zero-config development:
+
+1. Click **Code** → **Codespaces** → **Create codespace on main**
+2. Container builds automatically — Node 25, Java 17, all npm deps installed
+3. `.env.local` created with emulator values — no manual config needed
+4. Run `npm run dev:full` to start emulators + dev server
+
+Ports forwarded automatically: Vite (5173), Emulator UI (4000), RTDB (9000), Auth (9099), Functions (5001), Hosting (5000).
+
+**Limitations:** Codespaces runs in emulator-only mode. `firebase login` (interactive OAuth) doesn't work inside containers. To deploy or test against live Firebase, clone locally.
 
 ### Running Tests
 

@@ -1,0 +1,46 @@
+{
+  "name": "TheHat",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "25"
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "jdkDistro": "tem"
+    }
+  },
+  "forwardPorts": [5173, 4000, 9000, 9099, 5000, 5001],
+  "portsAttributes": {
+    "5173": {
+      "label": "Vite Dev Server",
+      "onAutoForward": "notify"
+    },
+    "4000": {
+      "label": "Emulator UI",
+      "onAutoForward": "silent"
+    },
+    "9000": {
+      "label": "RTDB Emulator",
+      "onAutoForward": "silent"
+    },
+    "9099": {
+      "label": "Auth Emulator",
+      "onAutoForward": "silent"
+    },
+    "5000": {
+      "label": "Hosting Emulator",
+      "onAutoForward": "silent"
+    },
+    "5001": {
+      "label": "Functions Emulator",
+      "onAutoForward": "silent"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["svelte.svelte-vscode", "bradlc.vscode-tailwindcss", "dbaeumer.vscode-eslint"]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/postCreate.sh"
+}

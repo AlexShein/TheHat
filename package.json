@@ -7,7 +7,7 @@
     "dev": "vite dev",
     "dev:solo": "VITE_DEV_BYPASS_MIN_PLAYERS=true vite dev",
     "emulators": "firebase emulators:start --project=the-word-guessing-game --only database,auth --import ./.emulators-data",
-    "dev:full": "concurrently \"npm run dev:emulators\" \"npm run dev\"",
+    "dev:full": "concurrently \"npm run emulators\" \"npm run dev\"",
     "test": "firebase emulators:exec --project=the-word-guessing-game --only database,auth 'vitest run --coverage'",
     "dev:solo:full": "concurrently \"npm run emulators\" \"npm run dev:solo\"",
     "dev:bootstrap": "firebase emulators:exec --project=the-word-guessing-game --only database,auth 'tsx scripts/dev-bootstrap.ts' --export-on-exit ./.emulators-data",
