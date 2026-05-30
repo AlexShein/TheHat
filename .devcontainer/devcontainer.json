@@ -6,7 +6,7 @@
       "version": "25"
     },
     "ghcr.io/devcontainers/features/java:1": {
-      "version": "17",
+      "version": "25",
       "jdkDistro": "tem"
     }
   },

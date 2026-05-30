@@ -145,7 +145,7 @@ src/
 ### Prerequisites
 
 - Node.js == 25
-- Java 11+ (for Firebase emulators)
+- Java 21+ (for Firebase emulators)
 - Firebase project with RTDB and Google Auth enabled
 - Service account key for admin scripts
 - `firebase login` only required for deploying or testing against live Firebase — **not needed for local emulator development**
