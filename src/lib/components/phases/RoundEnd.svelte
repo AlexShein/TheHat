@@ -38,10 +38,10 @@
 <div class="text-center p-6">
   <p class="font-display text-headline-md text-on-surface mb-4">Round {round} Complete</p>
 
-  <!-- Cumulative team scores -->
   <div class="flex gap-2 mb-6">
+    <span>Round score</span>
     {#each Object.entries(teams) as [tid, team] (tid)}
-      {@const total = (team.roundScores.round1 ?? 0) + (team.roundScores.round2 ?? 0) + (team.roundScores.round3 ?? 0)}
+      {@const total = round == 1 ? (team.roundScores.round1 ?? 0): round == 2 ? (team.roundScores.round2 ?? 0) : (team.roundScores.round3 ?? 0)}
       <div class="flex-1">
         <TeamScore teamName={team.name} teamId={tid} score={total} isActive={false} />
       </div>
